@@ -179,6 +179,50 @@ export default function GroupDashboardScreen() {
     return lines.join('\n');
   };
 
+  const downloadCSVFile = (csvContent: string, fileName: string) => {
+    // Check if we're in a browser environment with proper DOM support
+    if (typeof window === 'undefined' || typeof window.document === 'undefined') {
+      throw new Error('Download not supported in this environment');
+    }
+
+    try {
+      // Method 1: Try using data URL (most compatible)
+      const dataStr = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+      const downloadAnchorNode = window.document.createElement('a');
+      downloadAnchorNode.setAttribute('href', dataStr);
+      downloadAnchorNode.setAttribute('download', fileName);
+      downloadAnchorNode.style.display = 'none';
+      window.document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      window.document.body.removeChild(downloadAnchorNode);
+      return true;
+    } catch (error) {
+      console.log('Data URL method failed:', error);
+      
+      try {
+        // Method 2: Try using Blob and URL.createObjectURL
+        if (typeof Blob !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL) {
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = window.document.createElement('a');
+          link.href = url;
+          link.download = fileName;
+          link.style.display = 'none';
+          window.document.body.appendChild(link);
+          link.click();
+          window.document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          return true;
+        }
+      } catch (blobError) {
+        console.log('Blob method failed:', blobError);
+      }
+      
+      // If both methods fail, throw error
+      throw new Error('All download methods failed');
+    }
+  };
+
   const handleDownloadHistory = async () => {
     if (!group) return;
 
@@ -193,32 +237,46 @@ export default function GroupDashboardScreen() {
       const csvContent = convertToCSV(exportData);
       const fileName = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
       
-      // Simple and direct approach - create blob and download
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      // Try to download the CSV file
+      const downloadSuccess = downloadCSVFile(csvContent, fileName);
       
-      // Create download link
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.href = url;
-      link.download = fileName;
-      link.style.display = 'none';
-      
-      // Add to document, click, and remove
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up the URL object
-      URL.revokeObjectURL(url);
-      
-      Alert.alert(
-        'Download Complete!',
-        `Your board game history has been downloaded as "${fileName}". Check your Downloads folder or Files app.`
-      );
+      if (downloadSuccess) {
+        Alert.alert(
+          'Download Complete!',
+          `Your board game history has been downloaded as "${fileName}". Check your Downloads folder or Files app.`
+        );
+      }
       
     } catch (error) {
       console.error('Error exporting group data:', error);
-      Alert.alert('Export Failed', 'Failed to export group data. Please try again.');
+      
+      // Fallback: Log the CSV content so user can copy it manually
+      console.log('=== CSV EXPORT DATA ===');
+      console.log('Filename:', `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`);
+      console.log('Content:');
+      try {
+        const exportData = await (await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/export`)).json();
+        const csvContent = convertToCSV(exportData);
+        console.log(csvContent);
+      } catch (consoleError) {
+        console.log('Failed to generate CSV content for console');
+      }
+      console.log('=== END CSV DATA ===');
+      
+      Alert.alert(
+        'Download Issue',
+        'There was an issue with the automatic download. The CSV data has been logged to the browser console. Open developer tools (F12) and copy the data from the console.',
+        [
+          {
+            text: 'How to Access Console',
+            onPress: () => Alert.alert(
+              'Access Browser Console',
+              'On iPhone Safari:\n1. Go to Settings > Safari > Advanced\n2. Enable "Web Inspector"\n3. Connect to computer and use Safari Developer tools\n\nOn Desktop:\n1. Press F12 or right-click and select "Inspect"\n2. Go to Console tab\n3. Look for "CSV EXPORT DATA" section'
+            )
+          },
+          { text: 'OK' }
+        ]
+      );
     } finally {
       setExporting(false);
     }
