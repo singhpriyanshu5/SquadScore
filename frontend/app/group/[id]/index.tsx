@@ -173,18 +173,33 @@ export default function GroupDashboardScreen() {
 
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={navigateToPlayers}
+            activeOpacity={0.7}
+          >
             <Text style={styles.statNumber}>{stats.total_players}</Text>
             <Text style={styles.statLabel}>Players</Text>
-          </View>
-          <View style={styles.statCard}>
+            <Ionicons name="chevron-forward" size={16} color="#007AFF" style={styles.statChevron} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={navigateToTeams}
+            activeOpacity={0.7}
+          >
             <Text style={styles.statNumber}>{stats.total_teams}</Text>
             <Text style={styles.statLabel}>Teams</Text>
-          </View>
-          <View style={styles.statCard}>
+            <Ionicons name="chevron-forward" size={16} color="#007AFF" style={styles.statChevron} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => router.push(`/group/${id}/games`)}
+            activeOpacity={0.7}
+          >
             <Text style={styles.statNumber}>{stats.total_games}</Text>
             <Text style={styles.statLabel}>Games</Text>
-          </View>
+            <Ionicons name="chevron-forward" size={16} color="#007AFF" style={styles.statChevron} />
+          </TouchableOpacity>
         </View>
 
         {/* Top Player & Most Played Game */}
