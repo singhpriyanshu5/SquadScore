@@ -11,7 +11,7 @@ import time
 import sys
 
 # Base URL from frontend environment
-BASE_URL = "https://leaderboard-hub-1.preview.emergentagent.com/api"
+BASE_URL = "https://scoreleader.preview.emergentagent.com/api"
 
 class BoardGameAPITester:
     def __init__(self):
