@@ -352,7 +352,7 @@ export default function GameScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Game Name</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gameChips}>
-              {COMMON_GAMES.map((game) => (
+              {sortedGameOptions.map((game) => (
                 <TouchableOpacity
                   key={game}
                   style={[
