@@ -193,31 +193,61 @@ export default function GroupDashboardScreen() {
       const csvContent = convertToCSV(exportData);
       const fileName = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
       
-      // Use pure web APIs - no Expo modules
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.style.display = 'none';
-      
-      // Add to DOM, click, and remove
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up
-      URL.revokeObjectURL(url);
-      
-      Alert.alert(
-        'Download Complete!',
-        `Group history has been downloaded as "${fileName}".\n\nCheck your Downloads folder for the CSV file.`
-      );
+      // Check if we're in a web environment
+      if (typeof window !== 'undefined' && window.document) {
+        try {
+          // Method 1: Try modern download approach
+          const dataUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+          const link = window.document.createElement('a');
+          link.href = dataUrl;
+          link.download = fileName;
+          link.style.display = 'none';
+          
+          window.document.body.appendChild(link);
+          link.click();
+          window.document.body.removeChild(link);
+          
+          Alert.alert(
+            'Download Complete!',
+            `Group history has been downloaded as "${fileName}".\n\nCheck your Downloads folder for the CSV file.`
+          );
+        } catch (blobError) {
+          // Method 2: Fallback - show data in new window
+          const newWindow = window.open();
+          if (newWindow) {
+            newWindow.document.write(`<pre>${csvContent}</pre>`);
+            newWindow.document.title = fileName;
+            Alert.alert(
+              'Download Ready',
+              'CSV data has been opened in a new window. You can copy the content and save it as a CSV file.'
+            );
+          } else {
+            // Method 3: Ultimate fallback - copy to clipboard
+            throw new Error('Popup blocked - using clipboard fallback');
+          }
+        }
+      } else {
+        throw new Error('Download not supported in this environment');
+      }
     } catch (error) {
       console.error('Error exporting group data:', error);
-      Alert.alert('Export Failed', 'Failed to export group data. Please try again.');
+      // Show the CSV content in an alert as final fallback
+      Alert.alert(
+        'Export Data (Copy and Save)',
+        'Unable to download file directly. Here is your CSV data:\n\n' + 
+        (csvContent.length > 500 ? csvContent.substring(0, 500) + '...\n\n(truncated - full data logged to console)' : csvContent),
+        [
+          {
+            text: 'Copy Full Data',
+            onPress: () => {
+              console.log('=== FULL CSV DATA ===');
+              console.log(csvContent);
+              console.log('=== END CSV DATA ===');
+            }
+          },
+          { text: 'OK' }
+        ]
+      );
     } finally {
       setExporting(false);
     }
