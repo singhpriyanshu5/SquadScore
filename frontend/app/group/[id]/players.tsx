@@ -564,12 +564,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
   },
-  playerActions: {
-    marginLeft: 16,
-  },
-  playerEmoji: {
-    fontSize: 24,
-  },
   emojiScroll: {
     maxHeight: 200,
   },
