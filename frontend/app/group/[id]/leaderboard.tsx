@@ -65,7 +65,7 @@ export default function LeaderboardScreen() {
 
   const loadLeaderboards = async () => {
     try {
-      await Promise.all([loadPlayerLeaderboard(), loadTeamLeaderboard()]);
+      await Promise.all([loadPlayerLeaderboard(), loadTeamLeaderboard(), loadAvailableGames()]);
     } catch (error) {
       console.error('Error loading leaderboards:', error);
       Alert.alert('Error', 'Failed to load leaderboards. Please try again.');
@@ -75,8 +75,24 @@ export default function LeaderboardScreen() {
     }
   };
 
+  const buildFilterParams = () => {
+    const params = new URLSearchParams();
+    if (selectedGame) {
+      params.append('game_name', selectedGame);
+    }
+    if (selectedYear) {
+      params.append('year', selectedYear.toString());
+    }
+    if (selectedMonth) {
+      params.append('month', selectedMonth.toString());
+    }
+    return params.toString();
+  };
+
   const loadPlayerLeaderboard = async () => {
-    const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/leaderboard/players`);
+    const filterParams = buildFilterParams();
+    const url = `${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/leaderboard/players${filterParams ? '?' + filterParams : ''}`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Failed to load player leaderboard');
     }
@@ -91,6 +107,45 @@ export default function LeaderboardScreen() {
     }
     const data = await response.json();
     setTeamLeaderboard(data);
+  };
+
+  const loadAvailableGames = async () => {
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/games`);
+      if (response.ok) {
+        const games = await response.json();
+        setAvailableGames(games);
+      }
+    } catch (error) {
+      console.error('Error loading available games:', error);
+    }
+  };
+
+  const applyFilters = async () => {
+    setLoading(true);
+    try {
+      await loadPlayerLeaderboard();
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      Alert.alert('Error', 'Failed to apply filters. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearFilters = async () => {
+    setSelectedGame('');
+    setSelectedYear(null);
+    setSelectedMonth(null);
+    setLoading(true);
+    try {
+      await loadPlayerLeaderboard();
+    } catch (error) {
+      console.error('Error clearing filters:', error);
+      Alert.alert('Error', 'Failed to clear filters. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = () => {
