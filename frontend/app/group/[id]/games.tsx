@@ -195,8 +195,22 @@ export default function GamesHistoryScreen() {
                       {formatDate(session.game_date)} • {formatTime(session.created_date)}
                     </Text>
                   </View>
-                  <View style={styles.gameIcon}>
-                    <Ionicons name="game-controller" size={24} color="#007AFF" />
+                  <View style={styles.gameActions}>
+                    <View style={styles.gameIcon}>
+                      <Ionicons name="game-controller" size={24} color="#007AFF" />
+                    </View>
+                    <TouchableOpacity
+                      style={styles.deleteGameButton}
+                      onPress={() => handleDeleteGame(session)}
+                      disabled={deletingSessionId === session.id}
+                      activeOpacity={0.7}
+                    >
+                      {deletingSessionId === session.id ? (
+                        <ActivityIndicator size="small" color="#ff4444" />
+                      ) : (
+                        <Ionicons name="trash" size={20} color="#ff4444" />
+                      )}
+                    </TouchableOpacity>
                   </View>
                 </View>
 
