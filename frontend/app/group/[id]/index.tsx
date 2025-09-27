@@ -188,20 +188,44 @@ export default function GroupDashboardScreen() {
 
     setExporting(true);
     try {
-      // Simple approach: Open the download URL directly
       const downloadUrl = `${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/download-csv`;
       
-      // Open in new window/tab - browser will handle the download automatically
-      window.open(downloadUrl, '_blank');
-      
-      Alert.alert(
-        'Download Started!',
-        'Your board game history download has started. The CSV file should appear in your Downloads folder or Files app.'
-      );
-      
+      if (Platform.OS === 'web') {
+        // For web platform, use direct download
+        window.open(downloadUrl, '_blank');
+        Alert.alert(
+          'Download Started!',
+          'Your board game history download has started. The CSV file should appear in your Downloads folder.'
+        );
+      } else {
+        // For mobile platforms, download and share the file
+        const filename = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
+        const downloadDir = FileSystem.documentDirectory + filename;
+        
+        // Download the file
+        const downloadResult = await FileSystem.downloadAsync(downloadUrl, downloadDir);
+        
+        if (downloadResult.status === 200) {
+          // Check if sharing is available
+          const isAvailable = await Sharing.isAvailableAsync();
+          if (isAvailable) {
+            await Sharing.shareAsync(downloadResult.uri, {
+              mimeType: 'text/csv',
+              dialogTitle: 'Save Board Game History'
+            });
+          } else {
+            Alert.alert(
+              'Download Complete!',
+              `Your board game history has been saved to: ${filename}\n\nYou can find it in your device's Documents folder.`
+            );
+          }
+        } else {
+          throw new Error('Download failed');
+        }
+      }
     } catch (error) {
-      console.error('Error starting download:', error);
-      Alert.alert('Download Failed', 'Failed to start download. Please try again.');
+      console.error('Error downloading history:', error);
+      Alert.alert('Download Failed', 'Failed to download group history. Please try again.');
     } finally {
       setExporting(false);
     }
