@@ -111,6 +111,7 @@ export default function PlayersScreen() {
       }
 
       setNewPlayerName('');
+      setSelectedEmoji('😀');
       setShowAddModal(false);
       loadPlayers();
     } catch (error) {
