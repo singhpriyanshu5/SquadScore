@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,9 +6,11 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
+import random
+import string
 
 
 ROOT_DIR = Path(__file__).parent
@@ -25,32 +27,140 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+def generate_group_code():
+    """Generate a unique 6-character group code"""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
 # Define Models
-class StatusCheck(BaseModel):
+
+# Group Models
+class Group(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    group_code: str
+    group_name: str
+    created_date: datetime = Field(default_factory=datetime.utcnow)
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class GroupCreate(BaseModel):
+    group_name: str
 
-# Add your routes to the router instead of directly to app
+class GroupJoin(BaseModel):
+    group_code: str
+
+# Player Models
+class Player(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    player_name: str
+    group_id: str
+    total_score: int = 0
+    games_played: int = 0
+    created_date: datetime = Field(default_factory=datetime.utcnow)
+
+class PlayerCreate(BaseModel):
+    player_name: str
+    group_id: str
+
+# Team Models
+class Team(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    team_name: str
+    group_id: str
+    player_ids: List[str] = []
+    total_score: int = 0
+    games_played: int = 0
+    created_date: datetime = Field(default_factory=datetime.utcnow)
+
+class TeamCreate(BaseModel):
+    team_name: str
+    group_id: str
+    player_ids: List[str] = []
+
+# Game Session Models
+class PlayerScore(BaseModel):
+    player_id: str
+    player_name: str
+    score: int
+
+class TeamScore(BaseModel):
+    team_id: str
+    team_name: str
+    score: int
+    player_ids: List[str]
+
+class GameSession(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    group_id: str
+    game_name: str
+    game_date: datetime
+    player_scores: List[PlayerScore] = []
+    team_scores: List[TeamScore] = []
+    created_date: datetime = Field(default_factory=datetime.utcnow)
+
+class GameSessionCreate(BaseModel):
+    group_id: str
+    game_name: str
+    game_date: datetime
+    player_scores: List[PlayerScore] = []
+    team_scores: List[TeamScore] = []
+
+# Leaderboard Models
+class LeaderboardEntry(BaseModel):
+    id: str
+    name: str
+    total_score: int
+    games_played: int
+    average_score: float
+
+class GroupStats(BaseModel):
+    total_players: int
+    total_teams: int
+    total_games: int
+    most_played_game: Optional[str]
+    top_player: Optional[LeaderboardEntry]
+
+# Routes
+
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Board Game Score Tracker API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.dict()
-    status_obj = StatusCheck(**status_dict)
-    _ = await db.status_checks.insert_one(status_obj.dict())
-    return status_obj
+# Group Management Routes
+@api_router.post("/groups", response_model=Group)
+async def create_group(group_data: GroupCreate):
+    """Create a new group with a unique code"""
+    group_code = generate_group_code()
+    
+    # Ensure group code is unique
+    while await db.groups.find_one({"group_code": group_code}):
+        group_code = generate_group_code()
+    
+    group_dict = group_data.dict()
+    group_obj = Group(group_code=group_code, **group_dict)
+    
+    result = await db.groups.insert_one(group_obj.dict())
+    if result.inserted_id:
+        return group_obj
+    else:
+        raise HTTPException(status_code=500, detail="Failed to create group")
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find().to_list(1000)
-    return [StatusCheck(**status_check) for status_check in status_checks]
+@api_router.post("/groups/join", response_model=Group)
+async def join_group(join_data: GroupJoin):
+    """Join an existing group using group code"""
+    group = await db.groups.find_one({"group_code": join_data.group_code})
+    
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    return Group(**group)
+
+@api_router.get("/groups/{group_id}")
+async def get_group(group_id: str):
+    """Get group details by ID"""
+    group = await db.groups.find_one({"id": group_id})
+    
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    return Group(**group)
 
 # Include the router in the main app
 app.include_router(api_router)
