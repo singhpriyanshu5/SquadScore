@@ -182,8 +182,8 @@ backend:
 
 frontend:
   - task: "Frontend Implementation"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "index.tsx"
     stuck_count: 0
     priority: "medium"
@@ -192,6 +192,33 @@ frontend:
         - working: "NA"
           agent: "main"
           comment: "Not yet implemented - waiting for backend testing completion"
+        - working: true
+          agent: "main"
+          comment: "Frontend fully implemented with group management, player management, game recording, and leaderboards"
+  
+  - task: "Download Group History"
+    implemented: true
+    working: false
+    file: "/frontend/app/group/[id]/index.tsx"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Frontend uses web APIs (window.open, document) which don't work in React Native. Need to fix for mobile compatibility"
+
+  - task: "Upload Group History"
+    implemented: true
+    working: false
+    file: "/frontend/app/group/[id]/index.tsx"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "main"
+          comment: "Frontend uses web APIs (document.createElement) which don't work in React Native. Need to fix for mobile compatibility"
 
 metadata:
   created_by: "main_agent"
