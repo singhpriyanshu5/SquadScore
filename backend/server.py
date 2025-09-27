@@ -1090,7 +1090,7 @@ async def import_group_csv(group_id: str, file: UploadFile = File(...)):
                     "created_date": datetime.fromisoformat(session_data["created_date"].replace('Z', '+00:00'))
                 }
                 sessions_to_insert.append(session_doc)
-            await db.sessions.insert_many(sessions_to_insert)
+            await db.game_sessions.insert_many(sessions_to_insert)
         
         return {
             "message": "Group data imported successfully from CSV",
