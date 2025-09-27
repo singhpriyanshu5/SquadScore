@@ -616,6 +616,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   playerActions: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 16,
