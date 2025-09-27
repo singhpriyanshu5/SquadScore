@@ -370,6 +370,60 @@ async def get_game_sessions(group_id: str):
     sessions = await db.game_sessions.find({"group_id": group_id}).sort("game_date", -1).to_list(1000)
     return [GameSession(**session) for session in sessions]
 
+@api_router.delete("/game-sessions/{session_id}")
+async def delete_game_session(session_id: str):
+    """Delete a game session and revert player/team scores"""
+    # Get the game session first
+    session = await db.game_sessions.find_one({"id": session_id})
+    if not session:
+        raise HTTPException(status_code=404, detail="Game session not found")
+    
+    # Revert player scores
+    for player_score in session.get("player_scores", []):
+        await db.players.update_one(
+            {"id": player_score["player_id"]},
+            {
+                "$inc": {
+                    "total_score": -player_score["score"],
+                    "games_played": -1
+                }
+            }
+        )
+    
+    # Revert team scores and distributed player scores
+    for team_score in session.get("team_scores", []):
+        # Revert team stats
+        await db.teams.update_one(
+            {"id": team_score["team_id"]},
+            {
+                "$inc": {
+                    "total_score": -team_score["score"],
+                    "games_played": -1
+                }
+            }
+        )
+        
+        # Revert distributed player scores
+        if team_score.get("player_ids"):
+            score_per_player = team_score["score"] // len(team_score["player_ids"])
+            for player_id in team_score["player_ids"]:
+                await db.players.update_one(
+                    {"id": player_id},
+                    {
+                        "$inc": {
+                            "total_score": -score_per_player,
+                            "games_played": -1
+                        }
+                    }
+                )
+    
+    # Delete the game session
+    delete_result = await db.game_sessions.delete_one({"id": session_id})
+    if delete_result.deleted_count == 0:
+        raise HTTPException(status_code=500, detail="Failed to delete game session")
+    
+    return {"message": "Game session deleted successfully"}
+
 # Leaderboard and Dashboard Routes
 @api_router.get("/groups/{group_id}/leaderboard/players", response_model=List[LeaderboardEntry])
 async def get_player_leaderboard(group_id: str):
