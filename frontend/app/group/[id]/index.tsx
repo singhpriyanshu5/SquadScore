@@ -234,31 +234,26 @@ export default function GroupDashboardScreen() {
     try {
       let fileContent: string;
       
-      if (Platform.OS === 'web') {
-        // For web, we need to read the file differently
-        const response = await fetch(fileUri);
-        fileContent = await response.text();
-      } else {
-        // For mobile
-        fileContent = await FileSystem.readAsStringAsync(fileUri);
-      }
+      // Read file content - this works cross-platform
+      const response = await fetch(fileUri);
+      fileContent = await response.text();
 
       // Create FormData for upload
       const formData = new FormData();
       const blob = new Blob([fileContent], { type: 'application/json' });
       formData.append('file', blob, fileName);
 
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/import`, {
+      const uploadResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/import`, {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
         throw new Error(errorData.detail || 'Failed to import data');
       }
 
-      const result = await response.json();
+      const result = await uploadResponse.json();
       
       Alert.alert(
         'Import Complete',
