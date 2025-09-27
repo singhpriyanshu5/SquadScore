@@ -69,6 +69,12 @@ export default function RootLayout() {
             title: 'Leaderboards'
           }} 
         />
+        <Stack.Screen 
+          name="group/[id]/games" 
+          options={{ 
+            title: 'Game History'
+          }} 
+        />
       </Stack>
     </>
   );
