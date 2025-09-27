@@ -42,6 +42,7 @@ export default function GamesHistoryScreen() {
   const [gameSessions, setGameSessions] = useState<GameSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const { id } = useLocalSearchParams<{ id: string }>();
 
   useFocusEffect(
