@@ -1,139 +1,168 @@
 diff --git a/frontend/app/group/[id]/players.tsx b/frontend/app/group/[id]/players.tsx
-index e14c018..e9f4d71 100644
+index 34cec2b..3e4fc72 100644
 --- a/frontend/app/group/[id]/players.tsx
 +++ b/frontend/app/group/[id]/players.tsx
-@@ -534,6 +534,7 @@ const styles = StyleSheet.create({
+@@ -525,8 +525,9 @@ const styles = StyleSheet.create({
+   },
+   playerCard: {
+     backgroundColor: 'white',
+-    padding: 16,
++    padding: 20,
+     borderRadius: 12,
++    marginBottom: 12,
+     flexDirection: 'row',
+     alignItems: 'center',
+     shadowColor: '#000',
+@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
      shadowOpacity: 0.1,
      shadowRadius: 4,
      elevation: 3,
-+    minHeight: 80,
+-    minHeight: 80,
++    minHeight: 100,
    },
    playerInfo: {
      flex: 1,
 diff --git a/model.patch b/model.patch
-index e5c4ef6..e69de29 100644
+index e08bbed..e69de29 100644
 --- a/model.patch
 +++ b/model.patch
-@@ -1,122 +0,0 @@
--diff --git a/test_result.md b/test_result.md
--index 5299bd4..7364ade 100644
----- a/test_result.md
--+++ b/test_result.md
--@@ -107,63 +107,78 @@ user_problem_statement: "Build a mobile-friendly board game score tracker app wi
-- backend:
--   - task: "Group Management APIs"
--     implemented: true
---    working: false
--+    working: true
--     file: "server.py"
--     stuck_count: 0
--     priority: "high"
---    needs_retesting: true
--+    needs_retesting: false
--     status_history:
--         - working: "NA"
--           agent: "main"
--           comment: "Implemented create group, join group, get group APIs with unique group codes"
--+        - working: true
--+          agent: "testing"
--+          comment: "✅ All group management APIs working correctly. Tested: create group with unique 6-char codes (60BOFB), join group via code, get group by ID, error handling for invalid codes (404). Group creation, joining, and retrieval all functional."
-- 
--   - task: "Player Management APIs" 
--     implemented: true
---    working: false
--+    working: true
--     file: "server.py"
--     stuck_count: 0
--     priority: "high"
---    needs_retesting: true
--+    needs_retesting: false
--     status_history:
--         - working: "NA"
--           agent: "main"
--           comment: "Implemented add player and get players APIs with group validation"
--+        - working: true
--+          agent: "testing"
--+          comment: "✅ All player management APIs working correctly. Tested: added 4 players (Alice Johnson, Bob Smith, Charlie Brown, Diana Prince), retrieved all players in group, duplicate name rejection (400), invalid group ID handling (404). Player creation and retrieval fully functional."
-- 
--   - task: "Team Management APIs"
--     implemented: true  
---    working: false
--+    working: true
--     file: "server.py"
--     stuck_count: 0
--     priority: "high"
---    needs_retesting: true
--+    needs_retesting: false
--     status_history:
--         - working: "NA"
--           agent: "main"
--           comment: "Implemented create team and get teams APIs with player validation"
--+        - working: true
--+          agent: "testing"
--+          comment: "✅ All team management APIs working correctly. Tested: created 2 teams (The Strategists, The Adventurers) with 2 players each, retrieved all teams in group, duplicate team name rejection (400), invalid player ID handling (404). Team creation and retrieval fully functional."
-- 
--   - task: "Game Session Recording APIs"
--     implemented: true
---    working: false
--+    working: true
--     file: "server.py" 
--     stuck_count: 0
--     priority: "high"
---    needs_retesting: true
--+    needs_retesting: false
--     status_history:
--         - working: "NA"
--           agent: "main"
--           comment: "Implemented game session recording with auto score distribution to team players"
--+        - working: true
--+          agent: "testing"
--+          comment: "✅ All game session APIs working correctly. Tested: recorded individual player games (Settlers of Catan), recorded team games (Dungeons & Dragons), CRITICAL FEATURE VERIFIED: team score auto-distribution working perfectly (20 points distributed as 10 points each to Alice Johnson and Bob Smith), retrieved game sessions. Game recording and score distribution fully functional."
-- 
--   - task: "Leaderboard and Stats APIs"
--     implemented: true
---    working: false
--+    working: true
--     file: "server.py"
--     stuck_count: 0
--     priority: "high" 
---    needs_retesting: true
--+    needs_retesting: false
--     status_history:
--         - working: "NA"
--           agent: "main"
--           comment: "Implemented player/team leaderboards and group statistics APIs"
--+        - working: true
--+          agent: "testing"
--+          comment: "✅ All leaderboard and stats APIs working correctly. Tested: player leaderboard properly sorted (Alice Johnson top with 22 pts), team leaderboard properly sorted (The Strategists top with 20 pts), group statistics accurate (4 players, 2 teams, 2 games, most played: Settlers of Catan, top player: Alice Johnson). All ranking and statistics fully functional."
-- 
-- frontend:
--   - task: "Frontend Implementation"
--@@ -181,20 +196,17 @@ frontend:
-- metadata:
--   created_by: "main_agent"
--   version: "1.0"
---  test_sequence: 1
--+  test_sequence: 2
--   run_ui: false
-- 
-- test_plan:
---  current_focus:
---    - "Group Management APIs"
---    - "Player Management APIs"
---    - "Team Management APIs"
---    - "Game Session Recording APIs"
---    - "Leaderboard and Stats APIs"
--+  current_focus: []
--   stuck_tasks: []
---  test_all: true
--+  test_all: false
--   test_priority: "high_first"
-- 
-- agent_communication:
--     - agent: "main"
---      message: "Backend APIs implemented with MongoDB models for groups, players, teams, and game sessions. Ready for comprehensive testing of all endpoints with realistic data flows."
--\ No newline at end of file
--+      message: "Backend APIs implemented with MongoDB models for groups, players, teams, and game sessions. Ready for comprehensive testing of all endpoints with realistic data flows."
--+    - agent: "testing"
--+      message: "✅ COMPREHENSIVE BACKEND TESTING COMPLETED - All 5 backend API modules tested successfully with 24/24 tests passing (100% success rate). Key features verified: unique group code generation, player/team management, CRITICAL team score auto-distribution working perfectly, leaderboards properly sorted, accurate statistics. Backend is fully functional and ready for production use."
--\ No newline at end of file
+@@ -1,139 +0,0 @@
+-diff --git a/frontend/app/group/[id]/players.tsx b/frontend/app/group/[id]/players.tsx
+-index e14c018..e9f4d71 100644
+---- a/frontend/app/group/[id]/players.tsx
+-+++ b/frontend/app/group/[id]/players.tsx
+-@@ -534,6 +534,7 @@ const styles = StyleSheet.create({
+-     shadowOpacity: 0.1,
+-     shadowRadius: 4,
+-     elevation: 3,
+-+    minHeight: 80,
+-   },
+-   playerInfo: {
+-     flex: 1,
+-diff --git a/model.patch b/model.patch
+-index e5c4ef6..e69de29 100644
+---- a/model.patch
+-+++ b/model.patch
+-@@ -1,122 +0,0 @@
+--diff --git a/test_result.md b/test_result.md
+--index 5299bd4..7364ade 100644
+----- a/test_result.md
+--+++ b/test_result.md
+--@@ -107,63 +107,78 @@ user_problem_statement: "Build a mobile-friendly board game score tracker app wi
+-- backend:
+--   - task: "Group Management APIs"
+--     implemented: true
+---    working: false
+--+    working: true
+--     file: "server.py"
+--     stuck_count: 0
+--     priority: "high"
+---    needs_retesting: true
+--+    needs_retesting: false
+--     status_history:
+--         - working: "NA"
+--           agent: "main"
+--           comment: "Implemented create group, join group, get group APIs with unique group codes"
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "✅ All group management APIs working correctly. Tested: create group with unique 6-char codes (60BOFB), join group via code, get group by ID, error handling for invalid codes (404). Group creation, joining, and retrieval all functional."
+-- 
+--   - task: "Player Management APIs" 
+--     implemented: true
+---    working: false
+--+    working: true
+--     file: "server.py"
+--     stuck_count: 0
+--     priority: "high"
+---    needs_retesting: true
+--+    needs_retesting: false
+--     status_history:
+--         - working: "NA"
+--           agent: "main"
+--           comment: "Implemented add player and get players APIs with group validation"
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "✅ All player management APIs working correctly. Tested: added 4 players (Alice Johnson, Bob Smith, Charlie Brown, Diana Prince), retrieved all players in group, duplicate name rejection (400), invalid group ID handling (404). Player creation and retrieval fully functional."
+-- 
+--   - task: "Team Management APIs"
+--     implemented: true  
+---    working: false
+--+    working: true
+--     file: "server.py"
+--     stuck_count: 0
+--     priority: "high"
+---    needs_retesting: true
+--+    needs_retesting: false
+--     status_history:
+--         - working: "NA"
+--           agent: "main"
+--           comment: "Implemented create team and get teams APIs with player validation"
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "✅ All team management APIs working correctly. Tested: created 2 teams (The Strategists, The Adventurers) with 2 players each, retrieved all teams in group, duplicate team name rejection (400), invalid player ID handling (404). Team creation and retrieval fully functional."
+-- 
+--   - task: "Game Session Recording APIs"
+--     implemented: true
+---    working: false
+--+    working: true
+--     file: "server.py" 
+--     stuck_count: 0
+--     priority: "high"
+---    needs_retesting: true
+--+    needs_retesting: false
+--     status_history:
+--         - working: "NA"
+--           agent: "main"
+--           comment: "Implemented game session recording with auto score distribution to team players"
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "✅ All game session APIs working correctly. Tested: recorded individual player games (Settlers of Catan), recorded team games (Dungeons & Dragons), CRITICAL FEATURE VERIFIED: team score auto-distribution working perfectly (20 points distributed as 10 points each to Alice Johnson and Bob Smith), retrieved game sessions. Game recording and score distribution fully functional."
+-- 
+--   - task: "Leaderboard and Stats APIs"
+--     implemented: true
+---    working: false
+--+    working: true
+--     file: "server.py"
+--     stuck_count: 0
+--     priority: "high" 
+---    needs_retesting: true
+--+    needs_retesting: false
+--     status_history:
+--         - working: "NA"
+--           agent: "main"
+--           comment: "Implemented player/team leaderboards and group statistics APIs"
+--+        - working: true
+--+          agent: "testing"
+--+          comment: "✅ All leaderboard and stats APIs working correctly. Tested: player leaderboard properly sorted (Alice Johnson top with 22 pts), team leaderboard properly sorted (The Strategists top with 20 pts), group statistics accurate (4 players, 2 teams, 2 games, most played: Settlers of Catan, top player: Alice Johnson). All ranking and statistics fully functional."
+-- 
+-- frontend:
+--   - task: "Frontend Implementation"
+--@@ -181,20 +196,17 @@ frontend:
+-- metadata:
+--   created_by: "main_agent"
+--   version: "1.0"
+---  test_sequence: 1
+--+  test_sequence: 2
+--   run_ui: false
+-- 
+-- test_plan:
+---  current_focus:
+---    - "Group Management APIs"
+---    - "Player Management APIs"
+---    - "Team Management APIs"
+---    - "Game Session Recording APIs"
+---    - "Leaderboard and Stats APIs"
+--+  current_focus: []
+--   stuck_tasks: []
+---  test_all: true
+--+  test_all: false
+--   test_priority: "high_first"
+-- 
+-- agent_communication:
+--     - agent: "main"
+---      message: "Backend APIs implemented with MongoDB models for groups, players, teams, and game sessions. Ready for comprehensive testing of all endpoints with realistic data flows."
+--\ No newline at end of file
+--+      message: "Backend APIs implemented with MongoDB models for groups, players, teams, and game sessions. Ready for comprehensive testing of all endpoints with realistic data flows."
+--+    - agent: "testing"
+--+      message: "✅ COMPREHENSIVE BACKEND TESTING COMPLETED - All 5 backend API modules tested successfully with 24/24 tests passing (100% success rate). Key features verified: unique group code generation, player/team management, CRITICAL team score auto-distribution working perfectly, leaderboards properly sorted, accurate statistics. Backend is fully functional and ready for production use."
+--\ No newline at end of file
