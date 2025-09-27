@@ -375,6 +375,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  statChevron: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
   highlightsContainer: {
     gap: 12,
     marginBottom: 32,
