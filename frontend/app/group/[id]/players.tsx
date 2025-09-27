@@ -388,6 +388,90 @@ export default function PlayersScreen() {
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
+
+      {/* Edit Player Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalContent}
+          >
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowEditModal(false);
+                  setNewPlayerName('');
+                  setSelectedEmoji('😀');
+                  setEditingPlayer(null);
+                }}
+                disabled={updatingPlayer}
+              >
+                <Text style={styles.cancelButton}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Edit Player</Text>
+              <TouchableOpacity
+                onPress={handleUpdatePlayer}
+                disabled={updatingPlayer || !newPlayerName.trim()}
+              >
+                <Text style={[styles.saveButton, (!newPlayerName.trim() || updatingPlayer) && styles.saveButtonDisabled]}>
+                  {updatingPlayer ? 'Updating...' : 'Update'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Player Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newPlayerName}
+                  onChangeText={setNewPlayerName}
+                  placeholder="Enter player name"
+                  maxLength={50}
+                  autoFocus
+                  returnKeyType="done"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Choose Player Emoji</Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.emojiScroll}
+                  contentContainerStyle={styles.emojiScrollContent}
+                >
+                  {PLAYER_EMOJIS.map((emoji) => (
+                    <TouchableOpacity
+                      key={emoji}
+                      style={[
+                        styles.emojiButton,
+                        selectedEmoji === emoji && styles.emojiButtonSelected
+                      ]}
+                      onPress={() => setSelectedEmoji(emoji)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.emojiText}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.info}>
+                <Ionicons name="information-circle" size={20} color="#666" />
+                <Text style={styles.infoText}>
+                  Update the player's name or emoji. Note: This won't change their game scores or statistics.
+                </Text>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
