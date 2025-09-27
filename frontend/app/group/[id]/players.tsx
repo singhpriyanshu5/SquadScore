@@ -595,6 +595,12 @@ const styles = StyleSheet.create({
   emojiText: {
     fontSize: 20,
   },
+  playerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   playerMainContent: {
     flex: 1,
     flexDirection: 'row',
@@ -603,12 +609,11 @@ const styles = StyleSheet.create({
   playerActions: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 16,
   },
   deleteButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#ffe6e6',
     alignItems: 'center',
     justifyContent: 'center',
