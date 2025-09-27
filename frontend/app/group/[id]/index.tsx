@@ -46,6 +46,8 @@ export default function GroupDashboardScreen() {
   const [stats, setStats] = useState<GroupStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
