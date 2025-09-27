@@ -344,6 +344,118 @@ export default function LeaderboardScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilters}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowFilters(false)}>
+              <Text style={styles.modalCancel}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Filter Leaderboard</Text>
+            <TouchableOpacity onPress={clearFilters}>
+              <Text style={styles.modalClear}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody}>
+            {/* Game Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Game</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gameOptions}>
+                <TouchableOpacity
+                  style={[styles.gameOption, !selectedGame && styles.gameOptionSelected]}
+                  onPress={() => setSelectedGame('')}
+                >
+                  <Text style={[styles.gameOptionText, !selectedGame && styles.gameOptionTextSelected]}>
+                    All Games
+                  </Text>
+                </TouchableOpacity>
+                {availableGames.map((game) => (
+                  <TouchableOpacity
+                    key={game}
+                    style={[styles.gameOption, selectedGame === game && styles.gameOptionSelected]}
+                    onPress={() => setSelectedGame(game)}
+                  >
+                    <Text style={[styles.gameOptionText, selectedGame === game && styles.gameOptionTextSelected]}>
+                      {game}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Year Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Year</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearOptions}>
+                <TouchableOpacity
+                  style={[styles.yearOption, !selectedYear && styles.yearOptionSelected]}
+                  onPress={() => setSelectedYear(null)}
+                >
+                  <Text style={[styles.yearOptionText, !selectedYear && styles.yearOptionTextSelected]}>
+                    All Years
+                  </Text>
+                </TouchableOpacity>
+                {years.map((year) => (
+                  <TouchableOpacity
+                    key={year}
+                    style={[styles.yearOption, selectedYear === year && styles.yearOptionSelected]}
+                    onPress={() => setSelectedYear(year)}
+                  >
+                    <Text style={[styles.yearOptionText, selectedYear === year && styles.yearOptionTextSelected]}>
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Month Filter */}
+            {selectedYear && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterLabel}>Month</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthOptions}>
+                  <TouchableOpacity
+                    style={[styles.monthOption, !selectedMonth && styles.monthOptionSelected]}
+                    onPress={() => setSelectedMonth(null)}
+                  >
+                    <Text style={[styles.monthOptionText, !selectedMonth && styles.monthOptionTextSelected]}>
+                      All Months
+                    </Text>
+                  </TouchableOpacity>
+                  {months.map((month) => (
+                    <TouchableOpacity
+                      key={month.value}
+                      style={[styles.monthOption, selectedMonth === month.value && styles.monthOptionSelected]}
+                      onPress={() => setSelectedMonth(month.value)}
+                    >
+                      <Text style={[styles.monthOptionText, selectedMonth === month.value && styles.monthOptionTextSelected]}>
+                        {month.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={() => {
+                setShowFilters(false);
+                applyFilters();
+              }}
+            >
+              <Text style={styles.applyButtonText}>Apply Filters</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
