@@ -620,6 +620,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  playerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  playerNameContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 60,
