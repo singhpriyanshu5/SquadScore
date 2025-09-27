@@ -34,8 +34,8 @@ interface GameSession {
   group_id: string;
   game_name: string;
   game_date: string;
-  player_scores: PlayerScore[];
-  team_scores: TeamScore[];
+  player_scores?: PlayerScore[];
+  team_scores?: TeamScore[];
   created_date: string;
 }
 
