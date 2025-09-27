@@ -97,6 +97,7 @@ export default function PlayersScreen() {
         body: JSON.stringify({
           player_name: newPlayerName.trim(),
           group_id: id,
+          emoji: selectedEmoji,
         }),
       });
 
