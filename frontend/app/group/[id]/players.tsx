@@ -126,6 +126,89 @@ export default function PlayersScreen() {
     }
   };
 
+  const handleEditPlayer = (player: Player) => {
+    setEditingPlayer(player);
+    setNewPlayerName(player.player_name);
+    setSelectedEmoji(player.emoji);
+    setShowEditModal(true);
+  };
+
+  const handleUpdatePlayer = async () => {
+    if (!editingPlayer || !newPlayerName.trim()) {
+      Alert.alert('Error', 'Please enter a player name');
+      return;
+    }
+
+    setUpdatingPlayer(true);
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/players/${editingPlayer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          player_name: newPlayerName.trim(),
+          emoji: selectedEmoji,
+        }),
+      });
+
+      if (response.status === 400) {
+        Alert.alert('Error', 'A player with this name already exists in the group.');
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to update player');
+      }
+
+      setNewPlayerName('');
+      setSelectedEmoji('😀');
+      setEditingPlayer(null);
+      setShowEditModal(false);
+      loadPlayers();
+    } catch (error) {
+      console.error('Error updating player:', error);
+      Alert.alert('Error', 'Failed to update player. Please try again.');
+    } finally {
+      setUpdatingPlayer(false);
+    }
+  };
+
+  const handleDeletePlayer = (player: Player) => {
+    Alert.alert(
+      'Delete Player',
+      `Are you sure you want to delete "${player.player_name}"? This will remove them from all teams and game records.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => confirmDeletePlayer(player.id),
+        },
+      ]
+    );
+  };
+
+  const confirmDeletePlayer = async (playerId: string) => {
+    setDeletingPlayerId(playerId);
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/players/${playerId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete player');
+      }
+
+      loadPlayers();
+    } catch (error) {
+      console.error('Error deleting player:', error);
+      Alert.alert('Error', 'Failed to delete player. Please try again.');
+    } finally {
+      setDeletingPlayerId(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
