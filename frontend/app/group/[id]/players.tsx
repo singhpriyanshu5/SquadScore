@@ -47,6 +47,7 @@ export default function PlayersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [selectedEmoji, setSelectedEmoji] = useState('😀');
   const [addingPlayer, setAddingPlayer] = useState(false);
   const { id } = useLocalSearchParams<{ id: string }>();
 
