@@ -52,7 +52,7 @@ interface TeamScore {
 
 type GameMode = 'individual' | 'team';
 
-const COMMON_GAMES = [
+const DEFAULT_GAMES = [
   'Settlers of Catan',
   'Ticket to Ride',
   'Azul',
@@ -66,8 +66,7 @@ const COMMON_GAMES = [
   'Dominion',
   'Monopoly',
   'Risk',
-  'Dungeons & Dragons',
-  'Custom Game'
+  'Dungeons & Dragons'
 ];
 
 export default function GameScreen() {
