@@ -600,6 +600,153 @@ async def get_group_games(group_id: str):
     result = await db.game_sessions.aggregate(pipeline).to_list(1000)
     return [item["_id"] for item in result]
 
+@api_router.get("/groups/{group_id}/export")
+async def export_group_data(group_id: str):
+    """Export all group data for CSV download"""
+    # Verify group exists
+    group = await db.groups.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    # Get all data
+    players = await db.players.find({"group_id": group_id}).to_list(1000)
+    teams = await db.teams.find({"group_id": group_id}).to_list(1000)
+    sessions = await db.game_sessions.find({"group_id": group_id}).sort("game_date", 1).to_list(1000)
+    
+    # Format export data
+    export_data = {
+        "group": {
+            "id": group["id"],
+            "group_code": group["group_code"],
+            "group_name": group["group_name"],
+            "created_date": group["created_date"].isoformat() if isinstance(group["created_date"], datetime) else group["created_date"],
+            "export_date": datetime.utcnow().isoformat()
+        },
+        "players": [
+            {
+                "id": player["id"],
+                "player_name": player["player_name"],
+                "emoji": player.get("emoji", "😀"),
+                "total_score": player["total_score"],
+                "games_played": player["games_played"],
+                "created_date": player["created_date"].isoformat() if isinstance(player["created_date"], datetime) else player["created_date"]
+            }
+            for player in players
+        ],
+        "teams": [
+            {
+                "id": team["id"],
+                "team_name": team["team_name"],
+                "player_ids": team["player_ids"],
+                "total_score": team["total_score"],
+                "games_played": team["games_played"],
+                "created_date": team["created_date"].isoformat() if isinstance(team["created_date"], datetime) else team["created_date"]
+            }
+            for team in teams
+        ],
+        "game_sessions": [
+            {
+                "id": session["id"],
+                "game_name": session["game_name"],
+                "game_date": session["game_date"].isoformat() if isinstance(session["game_date"], datetime) else session["game_date"],
+                "player_scores": session.get("player_scores", []),
+                "team_scores": session.get("team_scores", []),
+                "created_date": session["created_date"].isoformat() if isinstance(session["created_date"], datetime) else session["created_date"]
+            }
+            for session in sessions
+        ]
+    }
+    
+    return export_data
+
+from fastapi import UploadFile, File
+import json
+
+@api_router.post("/groups/{group_id}/import")
+async def import_group_data(group_id: str, file: UploadFile = File(...)):
+    """Import group data from uploaded JSON file to reset group"""
+    # Verify group exists
+    group = await db.groups.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    try:
+        # Read and parse uploaded file
+        content = await file.read()
+        import_data = json.loads(content.decode('utf-8'))
+        
+        # Validate import data structure
+        required_keys = ["group", "players", "teams", "game_sessions"]
+        if not all(key in import_data for key in required_keys):
+            raise HTTPException(status_code=400, detail="Invalid import file format")
+        
+        # Clear existing data for this group
+        await db.players.delete_many({"group_id": group_id})
+        await db.teams.delete_many({"group_id": group_id})
+        await db.game_sessions.delete_many({"group_id": group_id})
+        
+        # Import players
+        if import_data["players"]:
+            players_to_insert = []
+            for player_data in import_data["players"]:
+                player_doc = {
+                    "id": player_data["id"],
+                    "player_name": player_data["player_name"],
+                    "group_id": group_id,
+                    "emoji": player_data.get("emoji", "😀"),
+                    "total_score": player_data["total_score"],
+                    "games_played": player_data["games_played"],
+                    "created_date": datetime.fromisoformat(player_data["created_date"].replace('Z', '+00:00'))
+                }
+                players_to_insert.append(player_doc)
+            await db.players.insert_many(players_to_insert)
+        
+        # Import teams
+        if import_data["teams"]:
+            teams_to_insert = []
+            for team_data in import_data["teams"]:
+                team_doc = {
+                    "id": team_data["id"],
+                    "team_name": team_data["team_name"],
+                    "group_id": group_id,
+                    "player_ids": team_data["player_ids"],
+                    "total_score": team_data["total_score"],
+                    "games_played": team_data["games_played"],
+                    "created_date": datetime.fromisoformat(team_data["created_date"].replace('Z', '+00:00'))
+                }
+                teams_to_insert.append(team_doc)
+            await db.teams.insert_many(teams_to_insert)
+        
+        # Import game sessions
+        if import_data["game_sessions"]:
+            sessions_to_insert = []
+            for session_data in import_data["game_sessions"]:
+                session_doc = {
+                    "id": session_data["id"],
+                    "group_id": group_id,
+                    "game_name": session_data["game_name"],
+                    "game_date": datetime.fromisoformat(session_data["game_date"].replace('Z', '+00:00')),
+                    "player_scores": session_data.get("player_scores", []),
+                    "team_scores": session_data.get("team_scores", []),
+                    "created_date": datetime.fromisoformat(session_data["created_date"].replace('Z', '+00:00'))
+                }
+                sessions_to_insert.append(session_doc)
+            await db.game_sessions.insert_many(sessions_to_insert)
+        
+        return {
+            "message": "Group data imported successfully",
+            "imported": {
+                "players": len(import_data["players"]),
+                "teams": len(import_data["teams"]),
+                "game_sessions": len(import_data["game_sessions"])
+            }
+        }
+        
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON file")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
 # Include the router in the main app
 app.include_router(api_router)
 
