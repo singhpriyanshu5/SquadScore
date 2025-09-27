@@ -50,6 +50,24 @@ interface TeamScore {
   player_ids: string[];
 }
 
+interface GroupStats {
+  total_players: number;
+  total_teams: number;
+  total_games: number;
+  most_played_game: string | null;
+  top_player: any;
+}
+
+interface GameSession {
+  id: string;
+  group_id: string;
+  game_name: string;
+  game_date: string;
+  player_scores: PlayerScore[];
+  team_scores: TeamScore[];
+  created_date: string;
+}
+
 type GameMode = 'individual' | 'team';
 
 const DEFAULT_GAMES = [
