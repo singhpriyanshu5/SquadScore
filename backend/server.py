@@ -897,6 +897,213 @@ async def import_group_data(group_id: str, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
+def parse_csv(csv_content: str):
+    """Parse CSV content back to structured data"""
+    import csv
+    from io import StringIO
+    
+    lines = csv_content.strip().split('\n')
+    data = {
+        "group": {},
+        "players": [],
+        "teams": [],
+        "game_sessions": []
+    }
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        if line == 'GROUP INFORMATION':
+            i += 1
+            # Parse group information
+            while i < len(lines) and lines[i].strip() != '':
+                if lines[i].startswith('Group Name,'):
+                    data["group"]["group_name"] = lines[i].split(',', 1)[1].strip()
+                elif lines[i].startswith('Group Code,'):
+                    data["group"]["group_code"] = lines[i].split(',', 1)[1].strip()
+                elif lines[i].startswith('Export Date,'):
+                    data["group"]["export_date"] = lines[i].split(',', 1)[1].strip()
+                i += 1
+        
+        elif line == 'PLAYERS':
+            i += 2  # Skip header line
+            # Parse players
+            while i < len(lines) and lines[i].strip() != '':
+                reader = csv.reader([lines[i]])
+                row = next(reader)
+                if len(row) >= 6:
+                    player = {
+                        "id": str(uuid.uuid4()),
+                        "player_name": row[0],
+                        "emoji": row[1],
+                        "total_score": int(row[2]),
+                        "games_played": int(row[3]),
+                        "created_date": f"{row[5]}T00:00:00"
+                    }
+                    data["players"].append(player)
+                i += 1
+        
+        elif line == 'TEAMS':
+            i += 2  # Skip header line
+            # Parse teams
+            while i < len(lines) and lines[i].strip() != '':
+                reader = csv.reader([lines[i]])
+                row = next(reader)
+                if len(row) >= 6:
+                    # Find player IDs by names
+                    player_names = row[1].split('; ')
+                    player_ids = []
+                    for name in player_names:
+                        player = next((p for p in data["players"] if p["player_name"] == name.strip()), None)
+                        if player:
+                            player_ids.append(player["id"])
+                    
+                    team = {
+                        "id": str(uuid.uuid4()),
+                        "team_name": row[0],
+                        "player_ids": player_ids,
+                        "total_score": int(row[2]),
+                        "games_played": int(row[3]),
+                        "created_date": f"{row[5]}T00:00:00"
+                    }
+                    data["teams"].append(team)
+                i += 1
+        
+        elif line == 'GAME SESSIONS':
+            i += 2  # Skip header line
+            # Parse game sessions
+            sessions_dict = {}
+            while i < len(lines) and lines[i].strip() != '':
+                reader = csv.reader([lines[i]])
+                row = next(reader)
+                if len(row) >= 5:
+                    game_name = row[0]
+                    game_date = f"{row[1]}T00:00:00"
+                    participant_name = row[2]
+                    score = int(row[3])
+                    score_type = row[4]
+                    
+                    # Create session key
+                    session_key = f"{game_name}_{game_date}"
+                    
+                    if session_key not in sessions_dict:
+                        sessions_dict[session_key] = {
+                            "id": str(uuid.uuid4()),
+                            "game_name": game_name,
+                            "game_date": game_date,
+                            "player_scores": [],
+                            "team_scores": [],
+                            "created_date": game_date
+                        }
+                    
+                    if score_type == "Individual":
+                        # Find player ID by name
+                        player = next((p for p in data["players"] if p["player_name"] == participant_name), None)
+                        if player:
+                            sessions_dict[session_key]["player_scores"].append({
+                                "player_id": player["id"],
+                                "player_name": participant_name,
+                                "score": score
+                            })
+                    elif score_type == "Team":
+                        # Find team and its player IDs
+                        team = next((t for t in data["teams"] if t["team_name"] == participant_name), None)
+                        if team:
+                            sessions_dict[session_key]["team_scores"].append({
+                                "team_id": team["id"],
+                                "team_name": participant_name,
+                                "score": score,
+                                "player_ids": team["player_ids"]
+                            })
+                i += 1
+            
+            data["game_sessions"] = list(sessions_dict.values())
+        
+        else:
+            i += 1
+    
+    return data
+
+@api_router.post("/groups/{group_id}/import-csv")
+async def import_group_csv(group_id: str, file: UploadFile = File(...)):
+    """Import group data from uploaded CSV file to reset group"""
+    # Verify group exists
+    group = await db.groups.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    try:
+        # Read and parse uploaded CSV file
+        content = await file.read()
+        csv_content = content.decode('utf-8')
+        import_data = parse_csv(csv_content)
+        
+        # Clear existing data for this group
+        await db.players.delete_many({"group_id": group_id})
+        await db.teams.delete_many({"group_id": group_id})
+        await db.game_sessions.delete_many({"group_id": group_id})
+        
+        # Import players
+        if import_data["players"]:
+            players_to_insert = []
+            for player_data in import_data["players"]:
+                player_doc = {
+                    "id": player_data["id"],
+                    "player_name": player_data["player_name"],
+                    "group_id": group_id,
+                    "emoji": player_data.get("emoji", "😀"),
+                    "total_score": player_data["total_score"],
+                    "games_played": player_data["games_played"],
+                    "created_date": datetime.fromisoformat(player_data["created_date"].replace('Z', '+00:00'))
+                }
+                players_to_insert.append(player_doc)
+            await db.players.insert_many(players_to_insert)
+        
+        # Import teams
+        if import_data["teams"]:
+            teams_to_insert = []
+            for team_data in import_data["teams"]:
+                team_doc = {
+                    "id": team_data["id"],
+                    "team_name": team_data["team_name"],
+                    "group_id": group_id,
+                    "player_ids": team_data["player_ids"],
+                    "total_score": team_data["total_score"],
+                    "games_played": team_data["games_played"],
+                    "created_date": datetime.fromisoformat(team_data["created_date"].replace('Z', '+00:00'))
+                }
+                teams_to_insert.append(team_doc)
+            await db.teams.insert_many(teams_to_insert)
+        
+        # Import game sessions
+        if import_data["game_sessions"]:
+            sessions_to_insert = []
+            for session_data in import_data["game_sessions"]:
+                session_doc = {
+                    "id": session_data["id"],
+                    "group_id": group_id,
+                    "game_name": session_data["game_name"],
+                    "game_date": datetime.fromisoformat(session_data["game_date"].replace('Z', '+00:00')),
+                    "player_scores": session_data.get("player_scores", []),
+                    "team_scores": session_data.get("team_scores", []),
+                    "created_date": datetime.fromisoformat(session_data["created_date"].replace('Z', '+00:00'))
+                }
+                sessions_to_insert.append(session_doc)
+            await db.sessions.insert_many(sessions_to_insert)
+        
+        return {
+            "message": "Group data imported successfully from CSV",
+            "imported": {
+                "players": len(import_data["players"]),
+                "teams": len(import_data["teams"]),
+                "game_sessions": len(import_data["game_sessions"])
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"CSV import failed: {str(e)}")
+
 # Include the router in the main app
 app.include_router(api_router)
 
