@@ -565,16 +565,6 @@ const styles = StyleSheet.create({
   playerActions: {
     marginLeft: 16,
   },
-  playerEmojiContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f0f8ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e3f2fd',
-  },
   playerEmoji: {
     fontSize: 24,
   },
