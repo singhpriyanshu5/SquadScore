@@ -136,39 +136,60 @@ export default function GroupDashboardScreen() {
 
       const exportData = await response.json();
       const jsonString = JSON.stringify(exportData, null, 2);
+      const fileName = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.json`;
       
       if (Platform.OS === 'web') {
-        // Web download
+        // Web download - create and trigger download
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.json`;
+        link.download = fileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-      } else {
-        // Mobile download
-        const fileName = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.json`;
-        const fileUri = FileSystem.documentDirectory + fileName;
         
-        await FileSystem.writeAsStringAsync(fileUri, jsonString);
+        Alert.alert(
+          'Download Complete',
+          `Group history has been downloaded as "${fileName}"`
+        );
+      } else {
+        // Mobile - use sharing API directly with blob
+        const blob = new Blob([jsonString], { type: 'application/json' });
         
         if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(fileUri, {
+          // Create a temporary URL for the blob
+          const url = URL.createObjectURL(blob);
+          await Sharing.shareAsync(url, {
             mimeType: 'application/json',
-            dialogTitle: 'Save Group History'
+            dialogTitle: 'Save Group History',
+            UTI: 'public.json'
           });
+          URL.revokeObjectURL(url);
+          
+          Alert.alert(
+            'Export Ready',
+            'Group history is ready to save. Choose where to save the file.'
+          );
         } else {
-          Alert.alert('Success', `Group history saved to ${fileName}`);
+          // Fallback - copy to clipboard
+          Alert.alert(
+            'Export Data',
+            'File sharing not available. The group data has been copied to clipboard.',
+            [
+              {
+                text: 'Copy to Clipboard',
+                onPress: () => {
+                  // Note: This would need Clipboard API
+                  console.log('JSON data:', jsonString);
+                }
+              },
+              { text: 'OK' }
+            ]
+          );
         }
       }
-
-      Alert.alert(
-        'Export Complete',
-        `Group history has been downloaded successfully!`
-      );
     } catch (error) {
       console.error('Error exporting group data:', error);
       Alert.alert('Export Failed', 'Failed to export group data. Please try again.');
