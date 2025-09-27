@@ -256,18 +256,17 @@ export default function PlayersScreen() {
               <View key={player.id} style={styles.playerCard}>
                 <View style={styles.playerHeader}>
                   <TouchableOpacity
-                    style={styles.playerMainContent}
+                    style={styles.playerInfo}
                     onPress={() => handleEditPlayer(player)}
                     activeOpacity={0.7}
                   >
-                    <View style={styles.playerInfo}>
-                      <View style={styles.playerNameRow}>
-                        <Text style={styles.playerEmoji}>{player.emoji}</Text>
-                        <View style={styles.playerNameContainer}>
-                          <Text style={styles.playerName}>{player.player_name}</Text>
-                        </View>
-                      </View>
+                    <View style={styles.playerNameRow}>
+                      <Text style={styles.playerEmoji}>{player.emoji}</Text>
+                      <Text style={styles.playerName}>{player.player_name}</Text>
                     </View>
+                    <Text style={styles.joinedDate}>
+                      Joined: {formatDate(player.created_date)}
+                    </Text>
                   </TouchableOpacity>
                   
                   <View style={styles.playerActions}>
@@ -287,19 +286,19 @@ export default function PlayersScreen() {
                 </View>
 
                 <View style={styles.playerStats}>
-                  <Text style={styles.statText}>
-                    Total Score: {player.total_score}
-                  </Text>
-                  <Text style={styles.statText}>
-                    Games: {player.games_played}
-                  </Text>
-                  <Text style={styles.statText}>
-                    Average: {getAverageScore(player)}
-                  </Text>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{player.total_score}</Text>
+                    <Text style={styles.statLabel}>Total Score</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{player.games_played}</Text>
+                    <Text style={styles.statLabel}>Games</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{getAverageScore(player)}</Text>
+                    <Text style={styles.statLabel}>Average</Text>
+                  </View>
                 </View>
-                <Text style={styles.joinedDate}>
-                  Joined: {formatDate(player.created_date)}
-                </Text>
               </View>
             ))}
           </View>
