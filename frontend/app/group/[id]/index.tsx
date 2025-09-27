@@ -10,11 +10,9 @@ import {
   ScrollView,
   RefreshControl,
   Share,
-  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-// Remove problematic Expo imports - use pure web APIs instead
 
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
