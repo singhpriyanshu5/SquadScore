@@ -51,6 +51,7 @@ class Player(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     player_name: str
     group_id: str
+    emoji: str = "😀"  # Default emoji
     total_score: int = 0
     games_played: int = 0
     created_date: datetime = Field(default_factory=datetime.utcnow)
@@ -58,6 +59,7 @@ class Player(BaseModel):
 class PlayerCreate(BaseModel):
     player_name: str
     group_id: str
+    emoji: str = "😀"  # Default emoji
 
 # Team Models
 class Team(BaseModel):
