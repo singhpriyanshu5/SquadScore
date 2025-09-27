@@ -46,9 +46,13 @@ export default function PlayersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('😀');
   const [addingPlayer, setAddingPlayer] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [updatingPlayer, setUpdatingPlayer] = useState(false);
+  const [deletingPlayerId, setDeletingPlayerId] = useState<string | null>(null);
   const { id } = useLocalSearchParams<{ id: string }>();
 
   useFocusEffect(
