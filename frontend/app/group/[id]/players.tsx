@@ -1,0 +1,429 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  RefreshControl,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+interface Player {
+  id: string;
+  player_name: string;
+  group_id: string;
+  total_score: number;
+  games_played: number;
+  created_date: string;
+}
+
+export default function PlayersScreen() {
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [addingPlayer, setAddingPlayer] = useState(false);
+  const { id } = useLocalSearchParams<{ id: string }>();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (id) {
+        loadPlayers();
+      }
+    }, [id])
+  );
+
+  const loadPlayers = async () => {
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/players`);
+      if (!response.ok) {
+        throw new Error('Failed to load players');
+      }
+      const playersData = await response.json();
+      setPlayers(playersData);
+    } catch (error) {
+      console.error('Error loading players:', error);
+      Alert.alert('Error', 'Failed to load players. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadPlayers();
+  };
+
+  const handleAddPlayer = async () => {
+    if (!newPlayerName.trim()) {
+      Alert.alert('Error', 'Please enter a player name');
+      return;
+    }
+
+    setAddingPlayer(true);
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/players`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          player_name: newPlayerName.trim(),
+          group_id: id,
+        }),
+      });
+
+      if (response.status === 400) {
+        Alert.alert('Error', 'A player with this name already exists in the group.');
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to add player');
+      }
+
+      setNewPlayerName('');
+      setShowAddModal(false);
+      loadPlayers();
+    } catch (error) {
+      console.error('Error adding player:', error);
+      Alert.alert('Error', 'Failed to add player. Please try again.');
+    } finally {
+      setAddingPlayer(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const getAverageScore = (player: Player) => {
+    if (player.games_played === 0) return 0;
+    return Math.round((player.total_score / player.games_played) * 100) / 100;
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading players...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+        {/* Add Player Button */}
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setShowAddModal(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="person-add" size={24} color="white" />
+          <Text style={styles.addButtonText}>Add New Player</Text>
+        </TouchableOpacity>
+
+        {/* Players List */}
+        {players.length > 0 ? (
+          <View style={styles.playersContainer}>
+            <Text style={styles.sectionTitle}>Players ({players.length})</Text>
+            {players.map((player) => (
+              <View key={player.id} style={styles.playerCard}>
+                <View style={styles.playerInfo}>
+                  <Text style={styles.playerName}>{player.player_name}</Text>
+                  <View style={styles.playerStats}>
+                    <Text style={styles.statText}>
+                      Total Score: {player.total_score}
+                    </Text>
+                    <Text style={styles.statText}>
+                      Games: {player.games_played}
+                    </Text>
+                    <Text style={styles.statText}>
+                      Average: {getAverageScore(player)}
+                    </Text>
+                  </View>
+                  <Text style={styles.joinedDate}>
+                    Joined: {formatDate(player.created_date)}
+                  </Text>
+                </View>
+                <View style={styles.playerActions}>
+                  <View style={styles.playerIcon}>
+                    <Ionicons name="person" size={24} color="#007AFF" />
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="people" size={80} color="#ccc" />
+            <Text style={styles.emptyTitle}>No Players Yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Add players to your group to start tracking scores!
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Add Player Modal */}
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalContent}
+          >
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                onPress={() => setShowAddModal(false)}
+                disabled={addingPlayer}
+              >
+                <Text style={styles.cancelButton}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Add Player</Text>
+              <TouchableOpacity
+                onPress={handleAddPlayer}
+                disabled={addingPlayer || !newPlayerName.trim()}
+              >
+                <Text style={[styles.saveButton, (!newPlayerName.trim() || addingPlayer) && styles.saveButtonDisabled]}>
+                  {addingPlayer ? 'Adding...' : 'Add'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Player Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newPlayerName}
+                  onChangeText={setNewPlayerName}
+                  placeholder="Enter player name"
+                  maxLength={50}
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={handleAddPlayer}
+                />
+              </View>
+
+              <View style={styles.info}>
+                <Ionicons name="information-circle" size={20} color="#666" />
+                <Text style={styles.infoText}>
+                  Player names must be unique within the group.
+                </Text>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  addButton: {
+    backgroundColor: '#007AFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginBottom: 24,
+    minHeight: 56,
+  },
+  addButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'white',
+    marginLeft: 8,
+  },
+  playersContainer: {
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 16,
+  },
+  playerCard: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  playerInfo: {
+    flex: 1,
+  },
+  playerName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  playerStats: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 8,
+  },
+  statText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  joinedDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+  playerActions: {
+    marginLeft: 16,
+  },
+  playerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e3f2fd',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#666',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 32,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e1e5e9',
+  },
+  cancelButton: {
+    fontSize: 16,
+    color: '#666',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  saveButton: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  saveButtonDisabled: {
+    color: '#ccc',
+  },
+  modalBody: {
+    flex: 1,
+    padding: 20,
+  },
+  inputContainer: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: '#e1e5e9',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    minHeight: 48,
+  },
+  info: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#e3f2fd',
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+});
