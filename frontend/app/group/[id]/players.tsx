@@ -370,13 +370,42 @@ const styles = StyleSheet.create({
   playerActions: {
     marginLeft: 16,
   },
-  playerIcon: {
+  playerEmojiContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#f0f8ff',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e3f2fd',
+  },
+  playerEmoji: {
+    fontSize: 24,
+  },
+  emojiScroll: {
+    maxHeight: 200,
+  },
+  emojiScrollContent: {
+    paddingHorizontal: 8,
+  },
+  emojiButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  emojiButtonSelected: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#007AFF',
+  },
+  emojiText: {
+    fontSize: 20,
   },
   emptyContainer: {
     alignItems: 'center',
