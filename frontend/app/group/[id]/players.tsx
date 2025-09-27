@@ -248,10 +248,34 @@ export default function PlayersScreen() {
                 />
               </View>
 
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Choose Player Emoji</Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.emojiScroll}
+                  contentContainerStyle={styles.emojiScrollContent}
+                >
+                  {PLAYER_EMOJIS.map((emoji) => (
+                    <TouchableOpacity
+                      key={emoji}
+                      style={[
+                        styles.emojiButton,
+                        selectedEmoji === emoji && styles.emojiButtonSelected
+                      ]}
+                      onPress={() => setSelectedEmoji(emoji)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.emojiText}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
               <View style={styles.info}>
                 <Ionicons name="information-circle" size={20} color="#666" />
                 <Text style={styles.infoText}>
-                  Player names must be unique within the group.
+                  Player names must be unique within the group. Choose a fun emoji to represent this player!
                 </Text>
               </View>
             </View>
