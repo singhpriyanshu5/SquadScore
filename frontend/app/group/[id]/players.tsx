@@ -184,8 +184,8 @@ export default function PlayersScreen() {
                   </Text>
                 </View>
                 <View style={styles.playerActions}>
-                  <View style={styles.playerIcon}>
-                    <Ionicons name="person" size={24} color="#007AFF" />
+                  <View style={styles.playerEmojiContainer}>
+                    <Text style={styles.playerEmoji}>{player.emoji}</Text>
                   </View>
                 </View>
               </View>
