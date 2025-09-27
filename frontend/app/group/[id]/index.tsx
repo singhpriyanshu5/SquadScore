@@ -277,11 +277,7 @@ export default function GroupDashboardScreen() {
         formData.append('file', asset as File);
         fileData = formData;
       } else {
-        // For mobile platforms, read the file and create FormData
-        const fileInfo = await FileSystem.getInfoAsync(asset.uri);
-        if (!fileInfo.exists) {
-          throw new Error('Selected file does not exist');
-        }
+        // For mobile platforms, the file is already available through DocumentPicker
 
         const formData = new FormData();
         formData.append('file', {
