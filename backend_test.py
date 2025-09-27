@@ -1136,6 +1136,8 @@ class BoardGameAPITester:
         test_results = []
         test_results.append(self.test_download_csv())
         test_results.append(self.test_import_functionality())
+        test_results.append(self.test_csv_import_functionality())
+        test_results.append(self.test_csv_import_error_handling())
         test_results.append(self.test_download_upload_error_handling())
         
         # Print summary
