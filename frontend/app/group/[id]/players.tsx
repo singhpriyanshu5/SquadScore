@@ -563,9 +563,9 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   playerEmojiContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#f0f8ff',
     alignItems: 'center',
     justifyContent: 'center',
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     borderColor: '#e3f2fd',
   },
   playerEmoji: {
-    fontSize: 24,
+    fontSize: 20,
   },
   emojiScroll: {
     maxHeight: 200,
