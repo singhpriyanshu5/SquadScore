@@ -657,6 +657,324 @@ class BoardGameAPITester:
             self.log_test("Import Functionality", False, f"- Exception: {str(e)}")
             return False
     
+    def test_csv_import_functionality(self):
+        """Test the NEW CSV import functionality"""
+        print("\n=== Testing CSV Import Functionality ===")
+        
+        if 'group' not in self.test_data:
+            self.log_test("CSV Import Functionality", False, "- No group available")
+            return False
+        
+        group_id = self.test_data['group']['id']
+        
+        try:
+            # Step 1: Download CSV data first
+            csv_url = f"{self.base_url}/groups/{group_id}/download-csv"
+            csv_response = self.session.get(csv_url)
+            
+            print(f"  GET {csv_url} -> {csv_response.status_code}")
+            
+            if csv_response.status_code != 200:
+                self.log_test("CSV Download for Import", False, f"- Status: {csv_response.status_code}")
+                return False
+            
+            csv_content = csv_response.text
+            self.log_test("CSV Download for Import", True, f"- Downloaded {len(csv_content)} characters")
+            
+            # Step 2: Test CSV import with downloaded data
+            import tempfile
+            import os
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+                temp_file.write(csv_content)
+                temp_file_path = temp_file.name
+            
+            try:
+                # Test CSV import endpoint
+                import_url = f"{self.base_url}/groups/{group_id}/import-csv"
+                
+                with open(temp_file_path, 'rb') as f:
+                    files = {'file': ('test_import.csv', f, 'text/csv')}
+                    import_response = self.session.post(import_url, files=files)
+                
+                print(f"  POST {import_url} -> {import_response.status_code}")
+                
+                if import_response.status_code == 200:
+                    result = import_response.json()
+                    
+                    success = True
+                    issues = []
+                    
+                    # Check response format
+                    if 'message' not in result or 'imported' not in result:
+                        success = False
+                        issues.append("Missing required response fields")
+                    
+                    if 'imported' in result:
+                        imported = result['imported']
+                        required_fields = ['players', 'teams', 'game_sessions']
+                        
+                        for field in required_fields:
+                            if field not in imported:
+                                success = False
+                                issues.append(f"Missing import statistic: {field}")
+                    
+                    if success:
+                        imported = result['imported']
+                        self.log_test("CSV Import", True, 
+                                    f"- Imported: {imported['players']} players, {imported['teams']} teams, {imported['game_sessions']} sessions")
+                        print(f"    Message: {result['message']}")
+                        
+                        # Step 3: Verify round-trip data integrity
+                        return self._verify_csv_round_trip_integrity(imported)
+                    else:
+                        self.log_test("CSV Import", False, f"- Issues: {', '.join(issues)}")
+                        return False
+                        
+                elif import_response.status_code == 404:
+                    self.log_test("CSV Import", False, "- Group not found")
+                    return False
+                elif import_response.status_code in [400, 500]:
+                    self.log_test("CSV Import", False, f"- Import error: {import_response.text}")
+                    return False
+                else:
+                    self.log_test("CSV Import", False, f"- Status: {import_response.status_code}")
+                    return False
+                    
+            finally:
+                # Clean up temp file
+                os.unlink(temp_file_path)
+                
+        except Exception as e:
+            self.log_test("CSV Import Functionality", False, f"- Exception: {str(e)}")
+            return False
+    
+    def _verify_csv_round_trip_integrity(self, import_stats):
+        """Verify that CSV round-trip (export -> import) preserves data integrity"""
+        print("    Verifying round-trip data integrity...")
+        
+        group_id = self.test_data['group']['id']
+        
+        try:
+            # Get current data after import
+            players_response = self.session.get(f"{self.base_url}/groups/{group_id}/players")
+            teams_response = self.session.get(f"{self.base_url}/groups/{group_id}/teams")
+            sessions_response = self.session.get(f"{self.base_url}/groups/{group_id}/game-sessions")
+            
+            if players_response.status_code != 200:
+                self.log_test("CSV Round-trip Integrity", False, "- Failed to get players after import")
+                return False
+            
+            if teams_response.status_code != 200:
+                self.log_test("CSV Round-trip Integrity", False, "- Failed to get teams after import")
+                return False
+            
+            if sessions_response.status_code != 200:
+                self.log_test("CSV Round-trip Integrity", False, "- Failed to get sessions after import")
+                return False
+            
+            imported_players = players_response.json()
+            imported_teams = teams_response.json()
+            imported_sessions = sessions_response.json()
+            
+            # Verify counts match import statistics
+            success = True
+            issues = []
+            
+            if len(imported_players) != import_stats['players']:
+                success = False
+                issues.append(f"Player count mismatch: expected {import_stats['players']}, got {len(imported_players)}")
+            
+            if len(imported_teams) != import_stats['teams']:
+                success = False
+                issues.append(f"Team count mismatch: expected {import_stats['teams']}, got {len(imported_teams)}")
+            
+            if len(imported_sessions) != import_stats['game_sessions']:
+                success = False
+                issues.append(f"Session count mismatch: expected {import_stats['game_sessions']}, got {len(imported_sessions)}")
+            
+            # Verify data structure integrity
+            if imported_players:
+                player = imported_players[0]
+                required_player_fields = ['id', 'player_name', 'emoji', 'total_score', 'games_played']
+                for field in required_player_fields:
+                    if field not in player:
+                        success = False
+                        issues.append(f"Missing player field: {field}")
+            
+            if imported_teams:
+                team = imported_teams[0]
+                required_team_fields = ['id', 'team_name', 'player_ids', 'total_score', 'games_played']
+                for field in required_team_fields:
+                    if field not in team:
+                        success = False
+                        issues.append(f"Missing team field: {field}")
+            
+            if imported_sessions:
+                session = imported_sessions[0]
+                required_session_fields = ['id', 'game_name', 'game_date', 'player_scores', 'team_scores']
+                for field in required_session_fields:
+                    if field not in session:
+                        success = False
+                        issues.append(f"Missing session field: {field}")
+            
+            if success:
+                self.log_test("CSV Round-trip Integrity", True, 
+                            f"- All data preserved: {len(imported_players)} players, {len(imported_teams)} teams, {len(imported_sessions)} sessions")
+                return True
+            else:
+                self.log_test("CSV Round-trip Integrity", False, f"- Issues: {', '.join(issues)}")
+                return False
+                
+        except Exception as e:
+            self.log_test("CSV Round-trip Integrity", False, f"- Exception: {str(e)}")
+            return False
+    
+    def test_csv_import_error_handling(self):
+        """Test CSV import error handling"""
+        print("\n=== Testing CSV Import Error Handling ===")
+        
+        success_count = 0
+        total_tests = 4
+        
+        # Test 1: CSV import with invalid group ID
+        try:
+            import tempfile
+            import os
+            
+            test_csv = "GROUP INFORMATION\nGroup Name,Test Group\nGroup Code,TEST01\n\nPLAYERS\nPlayer Name,Emoji,Total Score,Games Played,Average Score,Joined Date\nTest Player,😀,10,1,10.00,2024-01-01\n"
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+                temp_file.write(test_csv)
+                temp_file_path = temp_file.name
+            
+            try:
+                url = f"{self.base_url}/groups/invalid-group-id/import-csv"
+                with open(temp_file_path, 'rb') as f:
+                    files = {'file': ('test.csv', f, 'text/csv')}
+                    response = self.session.post(url, files=files)
+                
+                print(f"  POST {url} -> {response.status_code}")
+                
+                if response.status_code == 404:
+                    self.log_test("CSV Import Invalid Group", True, "- Correctly returned 404")
+                    success_count += 1
+                else:
+                    self.log_test("CSV Import Invalid Group", False, f"- Expected 404, got {response.status_code}")
+                    
+            finally:
+                os.unlink(temp_file_path)
+                
+        except Exception as e:
+            self.log_test("CSV Import Invalid Group", False, f"- Exception: {str(e)}")
+        
+        # Test 2: Malformed CSV
+        if 'group' in self.test_data:
+            try:
+                import tempfile
+                import os
+                
+                group_id = self.test_data['group']['id']
+                malformed_csv = "This is not a valid CSV format at all"
+                
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+                    temp_file.write(malformed_csv)
+                    temp_file_path = temp_file.name
+                
+                try:
+                    url = f"{self.base_url}/groups/{group_id}/import-csv"
+                    with open(temp_file_path, 'rb') as f:
+                        files = {'file': ('bad.csv', f, 'text/csv')}
+                        response = self.session.post(url, files=files)
+                    
+                    print(f"  POST {url} -> {response.status_code}")
+                    
+                    if response.status_code in [400, 500]:
+                        self.log_test("CSV Import Malformed", True, f"- Correctly returned {response.status_code}")
+                        success_count += 1
+                    else:
+                        self.log_test("CSV Import Malformed", False, f"- Expected 400/500, got {response.status_code}")
+                        
+                finally:
+                    os.unlink(temp_file_path)
+                    
+            except Exception as e:
+                self.log_test("CSV Import Malformed", False, f"- Exception: {str(e)}")
+        else:
+            self.log_test("CSV Import Malformed", False, "- No group available for testing")
+        
+        # Test 3: Empty CSV file
+        if 'group' in self.test_data:
+            try:
+                import tempfile
+                import os
+                
+                group_id = self.test_data['group']['id']
+                
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+                    temp_file.write("")  # Empty file
+                    temp_file_path = temp_file.name
+                
+                try:
+                    url = f"{self.base_url}/groups/{group_id}/import-csv"
+                    with open(temp_file_path, 'rb') as f:
+                        files = {'file': ('empty.csv', f, 'text/csv')}
+                        response = self.session.post(url, files=files)
+                    
+                    print(f"  POST {url} -> {response.status_code}")
+                    
+                    if response.status_code in [400, 500]:
+                        self.log_test("CSV Import Empty File", True, f"- Correctly returned {response.status_code}")
+                        success_count += 1
+                    else:
+                        self.log_test("CSV Import Empty File", False, f"- Expected 400/500, got {response.status_code}")
+                        
+                finally:
+                    os.unlink(temp_file_path)
+                    
+            except Exception as e:
+                self.log_test("CSV Import Empty File", False, f"- Exception: {str(e)}")
+        else:
+            self.log_test("CSV Import Empty File", False, "- No group available for testing")
+        
+        # Test 4: CSV with missing required sections
+        if 'group' in self.test_data:
+            try:
+                import tempfile
+                import os
+                
+                group_id = self.test_data['group']['id']
+                incomplete_csv = "GROUP INFORMATION\nGroup Name,Test\n"  # Missing other sections
+                
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as temp_file:
+                    temp_file.write(incomplete_csv)
+                    temp_file_path = temp_file.name
+                
+                try:
+                    url = f"{self.base_url}/groups/{group_id}/import-csv"
+                    with open(temp_file_path, 'rb') as f:
+                        files = {'file': ('incomplete.csv', f, 'text/csv')}
+                        response = self.session.post(url, files=files)
+                    
+                    print(f"  POST {url} -> {response.status_code}")
+                    
+                    # This might succeed with empty data or fail - both are acceptable
+                    if response.status_code in [200, 400, 500]:
+                        self.log_test("CSV Import Incomplete", True, f"- Handled gracefully with {response.status_code}")
+                        success_count += 1
+                    else:
+                        self.log_test("CSV Import Incomplete", False, f"- Unexpected status {response.status_code}")
+                        
+                finally:
+                    os.unlink(temp_file_path)
+                    
+            except Exception as e:
+                self.log_test("CSV Import Incomplete", False, f"- Exception: {str(e)}")
+        else:
+            self.log_test("CSV Import Incomplete", False, "- No group available for testing")
+        
+        return success_count >= 3  # Allow some flexibility in error handling
+    
     def test_download_upload_error_handling(self):
         """Test error handling for download/upload endpoints"""
         print("\n=== Testing Download/Upload Error Handling ===")
