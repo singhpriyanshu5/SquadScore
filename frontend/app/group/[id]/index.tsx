@@ -281,7 +281,7 @@ export default function GroupDashboardScreen() {
         const formData = new FormData();
         formData.append('file', {
           uri: asset.uri,
-          type: asset.mimeType || 'application/json',
+          type: asset.mimeType || 'text/csv',
           name: asset.name,
         } as any);
         fileData = formData;
