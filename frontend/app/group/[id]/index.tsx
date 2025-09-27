@@ -228,15 +228,15 @@ export default function GroupDashboardScreen() {
   const handleUploadHistory = async () => {
     if (!group) return;
 
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const file = result.assets[0];
-        
+    // Create a file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.csv';
+    input.style.display = 'none';
+    
+    input.onchange = (event: any) => {
+      const file = event.target.files[0];
+      if (file) {
         Alert.alert(
           'Import Group History',
           `This will replace ALL current group data with the data from "${file.name}". This action cannot be undone.\n\nAre you sure you want to continue?`,
@@ -245,15 +245,16 @@ export default function GroupDashboardScreen() {
             {
               text: 'Import',
               style: 'destructive',
-              onPress: () => performImport(file.uri, file.name)
+              onPress: () => performImport(file)
             }
           ]
         );
       }
-    } catch (error) {
-      console.error('Error picking document:', error);
-      Alert.alert('Error', 'Failed to select file. Please try again.');
-    }
+    };
+    
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
   };
 
   const performImport = async (fileUri: string, fileName: string) => {
