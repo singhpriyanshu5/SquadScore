@@ -123,6 +123,64 @@ export default function GroupDashboardScreen() {
     router.push(`/group/${id}/leaderboard`);
   };
 
+  const convertToCSV = (data: any) => {
+    const lines = [];
+    
+    // Add group info header
+    lines.push('GROUP INFORMATION');
+    lines.push(`Group Name,${data.group.group_name}`);
+    lines.push(`Group Code,${data.group.group_code}`);
+    lines.push(`Export Date,${new Date().toISOString().split('T')[0]}`);
+    lines.push('');
+    
+    // Add players section
+    lines.push('PLAYERS');
+    lines.push('Player Name,Emoji,Total Score,Games Played,Average Score,Joined Date');
+    data.players.forEach((player: any) => {
+      const avgScore = player.games_played > 0 ? (player.total_score / player.games_played).toFixed(2) : '0.00';
+      const joinedDate = new Date(player.created_date).toISOString().split('T')[0];
+      lines.push(`"${player.player_name}",${player.emoji},${player.total_score},${player.games_played},${avgScore},${joinedDate}`);
+    });
+    lines.push('');
+    
+    // Add teams section
+    if (data.teams && data.teams.length > 0) {
+      lines.push('TEAMS');
+      lines.push('Team Name,Players,Total Score,Games Played,Average Score,Created Date');
+      data.teams.forEach((team: any) => {
+        const playerNames = team.player_ids.map((id: string) => {
+          const player = data.players.find((p: any) => p.id === id);
+          return player ? player.player_name : 'Unknown';
+        }).join('; ');
+        const avgScore = team.games_played > 0 ? (team.total_score / team.games_played).toFixed(2) : '0.00';
+        const createdDate = new Date(team.created_date).toISOString().split('T')[0];
+        lines.push(`"${team.team_name}","${playerNames}",${team.total_score},${team.games_played},${avgScore},${createdDate}`);
+      });
+      lines.push('');
+    }
+    
+    // Add game sessions section
+    if (data.game_sessions && data.game_sessions.length > 0) {
+      lines.push('GAME SESSIONS');
+      lines.push('Game Name,Date,Player/Team,Score,Type');
+      data.game_sessions.forEach((session: any) => {
+        const gameDate = new Date(session.game_date).toISOString().split('T')[0];
+        
+        // Individual player scores
+        session.player_scores?.forEach((playerScore: any) => {
+          lines.push(`"${session.game_name}",${gameDate},"${playerScore.player_name}",${playerScore.score},Individual`);
+        });
+        
+        // Team scores
+        session.team_scores?.forEach((teamScore: any) => {
+          lines.push(`"${session.game_name}",${gameDate},"${teamScore.team_name}",${teamScore.score},Team`);
+        });
+      });
+    }
+    
+    return lines.join('\n');
+  };
+
   const handleDownloadHistory = async () => {
     if (!group) return;
 
@@ -134,61 +192,31 @@ export default function GroupDashboardScreen() {
       }
 
       const exportData = await response.json();
-      const jsonString = JSON.stringify(exportData, null, 2);
-      const fileName = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.json`;
+      const csvContent = convertToCSV(exportData);
+      const fileName = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
       
-      if (Platform.OS === 'web') {
-        // Web download - create and trigger download
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        Alert.alert(
-          'Download Complete',
-          `Group history has been downloaded as "${fileName}"`
-        );
-      } else {
-        // Mobile - use sharing API directly with blob
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        
-        if (await Sharing.isAvailableAsync()) {
-          // Create a temporary URL for the blob
-          const url = URL.createObjectURL(blob);
-          await Sharing.shareAsync(url, {
-            mimeType: 'application/json',
-            dialogTitle: 'Save Group History',
-            UTI: 'public.json'
-          });
-          URL.revokeObjectURL(url);
-          
-          Alert.alert(
-            'Export Ready',
-            'Group history is ready to save. Choose where to save the file.'
-          );
-        } else {
-          // Fallback - copy to clipboard
-          Alert.alert(
-            'Export Data',
-            'File sharing not available. The group data has been copied to clipboard.',
-            [
-              {
-                text: 'Copy to Clipboard',
-                onPress: () => {
-                  // Note: This would need Clipboard API
-                  console.log('JSON data:', jsonString);
-                }
-              },
-              { text: 'OK' }
-            ]
-          );
-        }
-      }
+      // Use pure web APIs - no Expo modules
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
+      
+      // Add to DOM, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      
+      Alert.alert(
+        'Download Complete!',
+        `Group history has been downloaded as "${fileName}".\n\nCheck your Downloads folder for the CSV file.`
+      );
     } catch (error) {
       console.error('Error exporting group data:', error);
       Alert.alert('Export Failed', 'Failed to export group data. Please try again.');
