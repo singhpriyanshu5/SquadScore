@@ -541,10 +541,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   playerName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: '#1a1a1a',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   playerStats: {
     flexDirection: 'row',
