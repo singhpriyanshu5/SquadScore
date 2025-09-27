@@ -257,19 +257,12 @@ export default function GroupDashboardScreen() {
     document.body.removeChild(input);
   };
 
-  const performImport = async (fileUri: string, fileName: string) => {
+  const performImport = async (file: File) => {
     setImporting(true);
     try {
-      let fileContent: string;
-      
-      // Read file content - this works cross-platform
-      const response = await fetch(fileUri);
-      fileContent = await response.text();
-
       // Create FormData for upload
       const formData = new FormData();
-      const blob = new Blob([fileContent], { type: 'application/json' });
-      formData.append('file', blob, fileName);
+      formData.append('file', file);
 
       const uploadResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/import`, {
         method: 'POST',
