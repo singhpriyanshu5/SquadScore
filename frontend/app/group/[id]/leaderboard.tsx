@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   ScrollView,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
