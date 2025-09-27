@@ -644,4 +644,128 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     paddingHorizontal: 32,
   },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e1e5e9',
+  },
+  modalCancel: {
+    fontSize: 16,
+    color: '#666',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  modalClear: {
+    fontSize: 16,
+    color: '#007AFF',
+  },
+  modalBody: {
+    flex: 1,
+    padding: 20,
+  },
+  filterSection: {
+    marginBottom: 32,
+  },
+  filterLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 12,
+  },
+  gameOptions: {
+    flexDirection: 'row',
+  },
+  gameOption: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#e1e5e9',
+  },
+  gameOptionSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  gameOptionText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  gameOptionTextSelected: {
+    color: 'white',
+  },
+  yearOptions: {
+    flexDirection: 'row',
+  },
+  yearOption: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#e1e5e9',
+  },
+  yearOptionSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  yearOptionText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  yearOptionTextSelected: {
+    color: 'white',
+  },
+  monthOptions: {
+    flexDirection: 'row',
+  },
+  monthOption: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#e1e5e9',
+  },
+  monthOptionSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  monthOptionText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  monthOptionTextSelected: {
+    color: 'white',
+  },
+  applyButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  applyButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'white',
+  },
 });
