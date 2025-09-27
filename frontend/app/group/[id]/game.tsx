@@ -98,6 +98,7 @@ export default function GameScreen() {
   const [gameDate, setGameDate] = useState(new Date());
   const [playerScores, setPlayerScores] = useState<Record<string, string>>({});
   const [teamScores, setTeamScores] = useState<Record<string, string>>({});
+  const [sortedGameOptions, setSortedGameOptions] = useState<string[]>(['Custom Game', ...DEFAULT_GAMES]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
