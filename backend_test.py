@@ -483,6 +483,267 @@ class BoardGameAPITester:
         
         return True
     
+    def test_download_csv(self):
+        """Test CSV download functionality"""
+        print("\n=== Testing CSV Download ===")
+        
+        if 'group' not in self.test_data:
+            self.log_test("CSV Download", False, "- No group available")
+            return False
+        
+        group_id = self.test_data['group']['id']
+        
+        try:
+            # Make request to CSV download endpoint
+            url = f"{self.base_url}/groups/{group_id}/download-csv"
+            response = self.session.get(url)
+            
+            print(f"  GET {url} -> {response.status_code}")
+            
+            if response.status_code == 200:
+                # Check headers
+                content_type = response.headers.get('content-type', '')
+                content_disposition = response.headers.get('content-disposition', '')
+                
+                success = True
+                issues = []
+                
+                # Verify content type
+                if 'text/csv' not in content_type:
+                    success = False
+                    issues.append(f"Wrong content type: {content_type}")
+                
+                # Verify download headers
+                if 'attachment' not in content_disposition or 'filename=' not in content_disposition:
+                    success = False
+                    issues.append(f"Missing download headers: {content_disposition}")
+                
+                # Check CSV content structure
+                csv_content = response.text
+                lines = csv_content.split('\n')
+                
+                # Verify required sections
+                required_sections = ['GROUP INFORMATION', 'PLAYERS']
+                found_sections = []
+                
+                for line in lines:
+                    for section in required_sections:
+                        if section in line:
+                            found_sections.append(section)
+                            break
+                
+                if len(found_sections) < len(required_sections):
+                    success = False
+                    issues.append(f"Missing sections. Found: {found_sections}, Required: {required_sections}")
+                
+                # Check for group info
+                if 'Group Name,' not in csv_content or 'Group Code,' not in csv_content:
+                    success = False
+                    issues.append("Missing group information in CSV")
+                
+                # Check for player data structure
+                if 'Player Name,Emoji,Total Score' not in csv_content:
+                    success = False
+                    issues.append("Missing player data structure in CSV")
+                
+                if success:
+                    self.log_test("CSV Download", True, f"- Content-Type: {content_type}")
+                    print(f"    Content-Disposition: {content_disposition}")
+                    print(f"    CSV sections found: {found_sections}")
+                    print(f"    CSV size: {len(csv_content)} characters")
+                else:
+                    self.log_test("CSV Download", False, f"- Issues: {', '.join(issues)}")
+                
+                return success
+                
+            elif response.status_code == 404:
+                self.log_test("CSV Download", False, "- Group not found")
+                return False
+            else:
+                self.log_test("CSV Download", False, f"- Status: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            self.log_test("CSV Download", False, f"- Exception: {str(e)}")
+            return False
+    
+    def test_import_functionality(self):
+        """Test JSON import functionality"""
+        print("\n=== Testing Import Functionality ===")
+        
+        if 'group' not in self.test_data:
+            self.log_test("Import Functionality", False, "- No group available")
+            return False
+        
+        group_id = self.test_data['group']['id']
+        
+        try:
+            # First, export current data to get valid import format
+            export_url = f"{self.base_url}/groups/{group_id}/export"
+            export_response = self.session.get(export_url)
+            
+            print(f"  GET {export_url} -> {export_response.status_code}")
+            
+            if export_response.status_code != 200:
+                self.log_test("Export for Import Test", False, f"- Status: {export_response.status_code}")
+                return False
+            
+            export_data = export_response.json()
+            self.log_test("Export for Import Test", True, "- Successfully exported data")
+            
+            # Create a temporary JSON file
+            import tempfile
+            import os
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+                json.dump(export_data, temp_file, indent=2)
+                temp_file_path = temp_file.name
+            
+            try:
+                # Test import with the exported data
+                import_url = f"{self.base_url}/groups/{group_id}/import"
+                
+                with open(temp_file_path, 'rb') as f:
+                    files = {'file': ('test_import.json', f, 'application/json')}
+                    import_response = self.session.post(import_url, files=files)
+                
+                print(f"  POST {import_url} -> {import_response.status_code}")
+                
+                if import_response.status_code == 200:
+                    result = import_response.json()
+                    
+                    success = True
+                    issues = []
+                    
+                    # Check response format
+                    if 'message' not in result or 'imported' not in result:
+                        success = False
+                        issues.append("Missing required response fields")
+                    
+                    if 'imported' in result:
+                        imported = result['imported']
+                        required_fields = ['players', 'teams', 'game_sessions']
+                        
+                        for field in required_fields:
+                            if field not in imported:
+                                success = False
+                                issues.append(f"Missing import statistic: {field}")
+                    
+                    if success:
+                        imported = result['imported']
+                        self.log_test("Import Functionality", True, 
+                                    f"- Imported: {imported['players']} players, {imported['teams']} teams, {imported['game_sessions']} sessions")
+                        print(f"    Message: {result['message']}")
+                    else:
+                        self.log_test("Import Functionality", False, f"- Issues: {', '.join(issues)}")
+                    
+                    return success
+                    
+                elif import_response.status_code == 404:
+                    self.log_test("Import Functionality", False, "- Group not found")
+                    return False
+                elif import_response.status_code == 400:
+                    self.log_test("Import Functionality", False, f"- Bad request: {import_response.text}")
+                    return False
+                else:
+                    self.log_test("Import Functionality", False, f"- Status: {import_response.status_code}")
+                    return False
+                    
+            finally:
+                # Clean up temp file
+                os.unlink(temp_file_path)
+                
+        except Exception as e:
+            self.log_test("Import Functionality", False, f"- Exception: {str(e)}")
+            return False
+    
+    def test_download_upload_error_handling(self):
+        """Test error handling for download/upload endpoints"""
+        print("\n=== Testing Download/Upload Error Handling ===")
+        
+        success_count = 0
+        total_tests = 3
+        
+        # Test 1: CSV download with invalid group ID
+        try:
+            url = f"{self.base_url}/groups/invalid-group-id/download-csv"
+            response = self.session.get(url)
+            print(f"  GET {url} -> {response.status_code}")
+            
+            if response.status_code == 404:
+                self.log_test("CSV Download Invalid Group", True, "- Correctly returned 404")
+                success_count += 1
+            else:
+                self.log_test("CSV Download Invalid Group", False, f"- Expected 404, got {response.status_code}")
+        except Exception as e:
+            self.log_test("CSV Download Invalid Group", False, f"- Exception: {str(e)}")
+        
+        # Test 2: Import with invalid group ID
+        try:
+            import tempfile
+            import os
+            
+            test_data = {"group": {}, "players": [], "teams": [], "game_sessions": []}
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+                json.dump(test_data, temp_file, indent=2)
+                temp_file_path = temp_file.name
+            
+            try:
+                url = f"{self.base_url}/groups/invalid-group-id/import"
+                with open(temp_file_path, 'rb') as f:
+                    files = {'file': ('test.json', f, 'application/json')}
+                    response = self.session.post(url, files=files)
+                
+                print(f"  POST {url} -> {response.status_code}")
+                
+                if response.status_code == 404:
+                    self.log_test("Import Invalid Group", True, "- Correctly returned 404")
+                    success_count += 1
+                else:
+                    self.log_test("Import Invalid Group", False, f"- Expected 404, got {response.status_code}")
+                    
+            finally:
+                os.unlink(temp_file_path)
+                
+        except Exception as e:
+            self.log_test("Import Invalid Group", False, f"- Exception: {str(e)}")
+        
+        # Test 3: Import with malformed JSON
+        if 'group' in self.test_data:
+            try:
+                import tempfile
+                import os
+                
+                group_id = self.test_data['group']['id']
+                
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+                    temp_file.write("invalid json content")
+                    temp_file_path = temp_file.name
+                
+                try:
+                    url = f"{self.base_url}/groups/{group_id}/import"
+                    with open(temp_file_path, 'rb') as f:
+                        files = {'file': ('bad.json', f, 'application/json')}
+                        response = self.session.post(url, files=files)
+                    
+                    print(f"  POST {url} -> {response.status_code}")
+                    
+                    if response.status_code == 400:
+                        self.log_test("Import Malformed JSON", True, "- Correctly returned 400")
+                        success_count += 1
+                    else:
+                        self.log_test("Import Malformed JSON", False, f"- Expected 400, got {response.status_code}")
+                        
+                finally:
+                    os.unlink(temp_file_path)
+                    
+            except Exception as e:
+                self.log_test("Import Malformed JSON", False, f"- Exception: {str(e)}")
+        else:
+            self.log_test("Import Malformed JSON", False, "- No group available for testing")
+        
+        return success_count == total_tests
+    
     def run_all_tests(self):
         """Run complete test suite"""
         print("🎲 Board Game Score Tracker API Test Suite")
