@@ -598,16 +598,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  playerMainContent: {
+  playerInfo: {
     flex: 1,
+  },
+  playerNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
+  },
+  playerEmoji: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  playerName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  joinedDate: {
+    fontSize: 14,
+    color: '#666',
   },
   playerActions: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 16,
   },
   deleteButton: {
     width: 36,
@@ -617,14 +634,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  playerNameRow: {
+  playerStats: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
-  playerNameContainer: {
-    flex: 1,
-    marginLeft: 12,
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
   },
   emptyContainer: {
     alignItems: 'center',
