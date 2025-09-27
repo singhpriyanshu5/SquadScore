@@ -260,7 +260,12 @@ export default function PlayersScreen() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.playerInfo}>
-                    <Text style={styles.playerName}>{player.player_name}</Text>
+                    <View style={styles.playerNameRow}>
+                      <Text style={styles.playerEmoji}>{player.emoji}</Text>
+                      <View style={styles.playerNameContainer}>
+                        <Text style={styles.playerName}>{player.player_name}</Text>
+                      </View>
+                    </View>
                     <View style={styles.playerStats}>
                       <Text style={styles.statText}>
                         Total Score: {player.total_score}
@@ -275,9 +280,6 @@ export default function PlayersScreen() {
                     <Text style={styles.joinedDate}>
                       Joined: {formatDate(player.created_date)}
                     </Text>
-                  </View>
-                  <View style={styles.playerEmojiContainer}>
-                    <Text style={styles.playerEmoji}>{player.emoji}</Text>
                   </View>
                 </TouchableOpacity>
                 
