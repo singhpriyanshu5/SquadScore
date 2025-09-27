@@ -287,7 +287,7 @@ export default function GroupDashboardScreen() {
         fileData = formData;
       }
 
-      const uploadResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/import`, {
+      const uploadResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/import-csv`, {
         method: 'POST',
         body: fileData,
       });
