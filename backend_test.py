@@ -763,9 +763,64 @@ class BoardGameAPITester:
         test_results.append(self.test_leaderboards())
         test_results.append(self.test_group_stats())
         
+        # Run download/upload tests (NEW)
+        test_results.append(self.test_download_csv())
+        test_results.append(self.test_import_functionality())
+        test_results.append(self.test_download_upload_error_handling())
+        
         # Print summary
         print("\n" + "=" * 50)
         print("📊 TEST SUMMARY")
+        print("=" * 50)
+        
+        print(f"✅ Passed: {len(self.passed_tests)}")
+        print(f"❌ Failed: {len(self.failed_tests)}")
+        
+        if self.failed_tests:
+            print("\nFailed Tests:")
+            for test in self.failed_tests:
+                print(f"  - {test}")
+        
+        success_rate = len(self.passed_tests) / (len(self.passed_tests) + len(self.failed_tests)) * 100
+        print(f"\nSuccess Rate: {success_rate:.1f}%")
+        
+        return len(self.failed_tests) == 0
+    
+    def run_download_upload_tests_only(self):
+        """Run only download/upload functionality tests"""
+        print("📥📤 Download/Upload Functionality Test Suite")
+        print("=" * 50)
+        
+        # Test API connectivity first
+        if not self.test_api_health():
+            print("\n❌ API is not accessible. Stopping tests.")
+            return False
+        
+        # Setup minimal test data if needed
+        if not self.test_data.get('group'):
+            print("\n🔧 Setting up test data...")
+            if not self.test_group_management():
+                print("❌ Failed to setup group data")
+                return False
+            if not self.test_player_management():
+                print("❌ Failed to setup player data")
+                return False
+            if not self.test_team_management():
+                print("❌ Failed to setup team data")
+                return False
+            if not self.test_game_sessions():
+                print("❌ Failed to setup game session data")
+                return False
+        
+        # Run download/upload specific tests
+        test_results = []
+        test_results.append(self.test_download_csv())
+        test_results.append(self.test_import_functionality())
+        test_results.append(self.test_download_upload_error_handling())
+        
+        # Print summary
+        print("\n" + "=" * 50)
+        print("📊 DOWNLOAD/UPLOAD TEST SUMMARY")
         print("=" * 50)
         
         print(f"✅ Passed: {len(self.passed_tests)}")
