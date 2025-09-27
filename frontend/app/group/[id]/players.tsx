@@ -602,6 +602,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingRight: 12,
+  },
+  playerActions: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteButton: {
     width: 44,
@@ -610,7 +615,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffe6e6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
   },
   emptyContainer: {
     alignItems: 'center',
