@@ -112,12 +112,39 @@ export default function GameScreen() {
 
   const loadData = async () => {
     try {
-      await Promise.all([loadPlayers(), loadTeams()]);
+      await Promise.all([loadPlayers(), loadTeams(), loadGameHistory()]);
     } catch (error) {
       console.error('Error loading data:', error);
       Alert.alert('Error', 'Failed to load data. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGameHistory = async () => {
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/game-sessions`);
+      if (!response.ok) {
+        throw new Error('Failed to load game history');
+      }
+      const sessions: GameSession[] = await response.json();
+      
+      // Count games by name to sort by popularity
+      const gameFrequency: Record<string, number> = {};
+      sessions.forEach(session => {
+        gameFrequency[session.game_name] = (gameFrequency[session.game_name] || 0) + 1;
+      });
+      
+      // Sort default games by frequency, keeping custom games at the start
+      const playedGames = Object.keys(gameFrequency).sort((a, b) => gameFrequency[b] - gameFrequency[a]);
+      const unplayedGames = DEFAULT_GAMES.filter(game => !gameFrequency[game]);
+      
+      // Combine: Custom Game first, then played games by frequency, then unplayed games
+      setSortedGameOptions(['Custom Game', ...playedGames.filter(g => g !== 'Custom Game'), ...unplayedGames]);
+    } catch (error) {
+      console.error('Error loading game history:', error);
+      // Fallback to default order if error
+      setSortedGameOptions(['Custom Game', ...DEFAULT_GAMES]);
     }
   };
 
