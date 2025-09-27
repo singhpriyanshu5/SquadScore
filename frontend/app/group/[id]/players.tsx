@@ -610,9 +610,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#ffe6e6',
     alignItems: 'center',
     justifyContent: 'center',
