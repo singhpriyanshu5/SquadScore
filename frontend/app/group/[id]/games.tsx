@@ -91,6 +91,41 @@ export default function GamesHistoryScreen() {
     }
   };
 
+  const handleDeleteGame = (session: GameSession) => {
+    Alert.alert(
+      'Delete Game',
+      `Are you sure you want to delete this "${session.game_name}" game? This will remove all scores and update player statistics.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => confirmDeleteGame(session.id),
+        },
+      ]
+    );
+  };
+
+  const confirmDeleteGame = async (sessionId: string) => {
+    setDeletingSessionId(sessionId);
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/game-sessions/${sessionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete game session');
+      }
+
+      loadGameSessions();
+    } catch (error) {
+      console.error('Error deleting game session:', error);
+      Alert.alert('Error', 'Failed to delete game session. Please try again.');
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
   const getTotalPlayers = (session: GameSession) => {
     const individualPlayers = session.player_scores?.length || 0;
     const teamPlayers = session.team_scores?.reduce((sum, team) => sum + team.player_ids.length, 0) || 0;
