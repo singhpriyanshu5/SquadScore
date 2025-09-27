@@ -198,29 +198,34 @@ export default function GroupDashboardScreen() {
           'Your board game history download has started. The CSV file should appear in your Downloads folder.'
         );
       } else {
-        // For mobile platforms, download and share the file
+        // For mobile platforms, fetch the data and create a shareable file
+        const response = await fetch(downloadUrl);
+        if (!response.ok) {
+          throw new Error('Failed to fetch CSV data');
+        }
+        
+        const csvData = await response.text();
         const filename = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
-        const downloadDir = FileSystem.documentDirectory + filename;
+        const fileUri = FileSystem.documentDirectory + filename;
         
-        // Download the file
-        const downloadResult = await FileSystem.downloadAsync(downloadUrl, downloadDir);
+        // Write the CSV data to a file
+        await FileSystem.writeAsStringAsync(fileUri, csvData, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
         
-        if (downloadResult.status === 200) {
-          // Check if sharing is available
-          const isAvailable = await Sharing.isAvailableAsync();
-          if (isAvailable) {
-            await Sharing.shareAsync(downloadResult.uri, {
-              mimeType: 'text/csv',
-              dialogTitle: 'Save Board Game History'
-            });
-          } else {
-            Alert.alert(
-              'Download Complete!',
-              `Your board game history has been saved to: ${filename}\n\nYou can find it in your device's Documents folder.`
-            );
-          }
+        // Check if sharing is available and share the file
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Save Board Game History',
+            UTI: 'public.comma-separated-values-text'
+          });
         } else {
-          throw new Error('Download failed');
+          Alert.alert(
+            'Download Complete!',
+            `Your board game history has been saved to: ${filename}\n\nYou can find it in your device's Documents folder.`
+          );
         }
       }
     } catch (error) {
