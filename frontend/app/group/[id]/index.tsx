@@ -125,6 +125,145 @@ export default function GroupDashboardScreen() {
     router.push(`/group/${id}/leaderboard`);
   };
 
+  const handleDownloadHistory = async () => {
+    if (!group) return;
+
+    setExporting(true);
+    try {
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/export`);
+      if (!response.ok) {
+        throw new Error('Failed to export group data');
+      }
+
+      const exportData = await response.json();
+      const jsonString = JSON.stringify(exportData, null, 2);
+      
+      if (Platform.OS === 'web') {
+        // Web download
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        // Mobile download
+        const fileName = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.json`;
+        const fileUri = FileSystem.documentDirectory + fileName;
+        
+        await FileSystem.writeAsStringAsync(fileUri, jsonString);
+        
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/json',
+            dialogTitle: 'Save Group History'
+          });
+        } else {
+          Alert.alert('Success', `Group history saved to ${fileName}`);
+        }
+      }
+
+      Alert.alert(
+        'Export Complete',
+        `Group history has been downloaded successfully!`
+      );
+    } catch (error) {
+      console.error('Error exporting group data:', error);
+      Alert.alert('Export Failed', 'Failed to export group data. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleUploadHistory = async () => {
+    if (!group) return;
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/json',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const file = result.assets[0];
+        
+        Alert.alert(
+          'Import Group History',
+          `This will replace ALL current group data with the data from "${file.name}". This action cannot be undone.\n\nAre you sure you want to continue?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Import',
+              style: 'destructive',
+              onPress: () => performImport(file.uri, file.name)
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert('Error', 'Failed to select file. Please try again.');
+    }
+  };
+
+  const performImport = async (fileUri: string, fileName: string) => {
+    setImporting(true);
+    try {
+      let fileContent: string;
+      
+      if (Platform.OS === 'web') {
+        // For web, we need to read the file differently
+        const response = await fetch(fileUri);
+        fileContent = await response.text();
+      } else {
+        // For mobile
+        fileContent = await FileSystem.readAsStringAsync(fileUri);
+      }
+
+      // Create FormData for upload
+      const formData = new FormData();
+      const blob = new Blob([fileContent], { type: 'application/json' });
+      formData.append('file', blob, fileName);
+
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/import`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to import data');
+      }
+
+      const result = await response.json();
+      
+      Alert.alert(
+        'Import Complete',
+        `Successfully imported:\n• ${result.imported.players} players\n• ${result.imported.teams} teams\n• ${result.imported.game_sessions} game sessions`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Refresh the page data
+              loadGroupData();
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error importing group data:', error);
+      Alert.alert(
+        'Import Failed', 
+        `Failed to import group data: ${error.message || 'Unknown error'}\n\nPlease make sure you selected a valid group history file.`
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
