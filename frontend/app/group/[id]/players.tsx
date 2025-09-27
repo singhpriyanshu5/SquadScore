@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
     borderColor: '#e3f2fd',
   },
   playerEmoji: {
-    fontSize: 18,
+    fontSize: 24,
   },
   emojiScroll: {
     maxHeight: 200,
