@@ -525,8 +525,9 @@ const styles = StyleSheet.create({
   },
   playerCard: {
     backgroundColor: 'white',
-    padding: 16,
+    padding: 20,
     borderRadius: 12,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    minHeight: 80,
+    minHeight: 100,
   },
   playerInfo: {
     flex: 1,
