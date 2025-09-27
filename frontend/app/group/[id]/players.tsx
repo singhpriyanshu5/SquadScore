@@ -254,49 +254,52 @@ export default function PlayersScreen() {
             <Text style={styles.sectionTitle}>Players ({players.length})</Text>
             {players.map((player) => (
               <View key={player.id} style={styles.playerCard}>
-                <TouchableOpacity
-                  style={styles.playerMainContent}
-                  onPress={() => handleEditPlayer(player)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.playerInfo}>
-                    <View style={styles.playerNameRow}>
-                      <Text style={styles.playerEmoji}>{player.emoji}</Text>
-                      <View style={styles.playerNameContainer}>
-                        <Text style={styles.playerName}>{player.player_name}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.playerStats}>
-                      <Text style={styles.statText}>
-                        Total Score: {player.total_score}
-                      </Text>
-                      <Text style={styles.statText}>
-                        Games: {player.games_played}
-                      </Text>
-                      <Text style={styles.statText}>
-                        Average: {getAverageScore(player)}
-                      </Text>
-                    </View>
-                    <Text style={styles.joinedDate}>
-                      Joined: {formatDate(player.created_date)}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                
-                <View style={styles.playerActions}>
+                <View style={styles.playerHeader}>
                   <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDeletePlayer(player)}
-                    disabled={deletingPlayerId === player.id}
+                    style={styles.playerMainContent}
+                    onPress={() => handleEditPlayer(player)}
                     activeOpacity={0.7}
                   >
-                    {deletingPlayerId === player.id ? (
-                      <ActivityIndicator size="small" color="#ff4444" />
-                    ) : (
-                      <Ionicons name="trash" size={20} color="#ff4444" />
-                    )}
+                    <View style={styles.playerInfo}>
+                      <View style={styles.playerNameRow}>
+                        <Text style={styles.playerEmoji}>{player.emoji}</Text>
+                        <View style={styles.playerNameContainer}>
+                          <Text style={styles.playerName}>{player.player_name}</Text>
+                        </View>
+                      </View>
+                    </View>
                   </TouchableOpacity>
+                  
+                  <View style={styles.playerActions}>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleDeletePlayer(player)}
+                      disabled={deletingPlayerId === player.id}
+                      activeOpacity={0.7}
+                    >
+                      {deletingPlayerId === player.id ? (
+                        <ActivityIndicator size="small" color="#ff4444" />
+                      ) : (
+                        <Ionicons name="trash" size={20} color="#ff4444" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
+
+                <View style={styles.playerStats}>
+                  <Text style={styles.statText}>
+                    Total Score: {player.total_score}
+                  </Text>
+                  <Text style={styles.statText}>
+                    Games: {player.games_played}
+                  </Text>
+                  <Text style={styles.statText}>
+                    Average: {getAverageScore(player)}
+                  </Text>
+                </View>
+                <Text style={styles.joinedDate}>
+                  Joined: {formatDate(player.created_date)}
+                </Text>
               </View>
             ))}
           </View>
