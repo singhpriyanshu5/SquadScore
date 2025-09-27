@@ -597,6 +597,20 @@ const styles = StyleSheet.create({
   emojiText: {
     fontSize: 20,
   },
+  playerMainContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#ffe6e6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 60,
