@@ -600,9 +600,64 @@ async def get_group_games(group_id: str):
     result = await db.game_sessions.aggregate(pipeline).to_list(1000)
     return [item["_id"] for item in result]
 
+from fastapi.responses import Response
+
+def convert_to_csv(data):
+    """Convert export data to CSV format"""
+    lines = []
+    
+    # Add group info header
+    lines.append('GROUP INFORMATION')
+    lines.append(f'Group Name,{data["group"]["group_name"]}')
+    lines.append(f'Group Code,{data["group"]["group_code"]}')
+    lines.append(f'Export Date,{data["group"]["export_date"].split("T")[0]}')
+    lines.append('')
+    
+    # Add players section
+    lines.append('PLAYERS')
+    lines.append('Player Name,Emoji,Total Score,Games Played,Average Score,Joined Date')
+    for player in data["players"]:
+        avg_score = player["total_score"] / player["games_played"] if player["games_played"] > 0 else 0
+        joined_date = player["created_date"].split("T")[0]
+        lines.append(f'"{player["player_name"]}",{player["emoji"]},{player["total_score"]},{player["games_played"]},{avg_score:.2f},{joined_date}')
+    lines.append('')
+    
+    # Add teams section
+    if data["teams"]:
+        lines.append('TEAMS')
+        lines.append('Team Name,Players,Total Score,Games Played,Average Score,Created Date')
+        for team in data["teams"]:
+            player_names = []
+            for player_id in team["player_ids"]:
+                player = next((p for p in data["players"] if p["id"] == player_id), None)
+                if player:
+                    player_names.append(player["player_name"])
+            players_str = "; ".join(player_names)
+            avg_score = team["total_score"] / team["games_played"] if team["games_played"] > 0 else 0
+            created_date = team["created_date"].split("T")[0]
+            lines.append(f'"{team["team_name"]}","{players_str}",{team["total_score"]},{team["games_played"]},{avg_score:.2f},{created_date}')
+        lines.append('')
+    
+    # Add game sessions section
+    if data["game_sessions"]:
+        lines.append('GAME SESSIONS')
+        lines.append('Game Name,Date,Player/Team,Score,Type')
+        for session in data["game_sessions"]:
+            game_date = session["game_date"].split("T")[0]
+            
+            # Individual player scores
+            for player_score in session.get("player_scores", []):
+                lines.append(f'"{session["game_name"]}",{game_date},"{player_score["player_name"]}",{player_score["score"]},Individual')
+            
+            # Team scores
+            for team_score in session.get("team_scores", []):
+                lines.append(f'"{session["game_name"]}",{game_date},"{team_score["team_name"]}",{team_score["score"]},Team')
+    
+    return '\n'.join(lines)
+
 @api_router.get("/groups/{group_id}/export")
 async def export_group_data(group_id: str):
-    """Export all group data for CSV download"""
+    """Export all group data as JSON"""
     # Verify group exists
     group = await db.groups.find_one({"id": group_id})
     if not group:
@@ -658,6 +713,101 @@ async def export_group_data(group_id: str):
     }
     
     return export_data
+
+@api_router.get("/groups/{group_id}/download-csv")
+async def download_group_csv(group_id: str):
+    """Download group data as CSV file"""
+    # Verify group exists
+    group = await db.groups.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    # Get all data
+    players = await db.players.find({"group_id": group_id}).to_list(1000)
+    teams = await db.teams.find({"group_id": group_id}).to_list(1000)
+    sessions = await db.game_sessions.find({"group_id": group_id}).sort("game_date", 1).to_list(1000)
+    
+    # Format export data
+    export_data = {
+        "group": {
+            "id": group["id"],
+            "group_code": group["group_code"],
+            "group_name": group["group_name"],
+            "created_date": group["created_date"].isoformat() if isinstance(group["created_date"], datetime) else group["created_date"],
+            "export_date": datetime.utcnow().isoformat()
+        },
+        "players": [
+            {
+                "id": player["id"],
+                "player_name": player["player_name"],
+                "emoji": player.get("emoji", "😀"),
+                "total_score": player["total_score"],
+                "games_played": player["games_played"],
+                "created_date": player["created_date"].isoformat() if isinstance(player["created_date"], datetime) else player["created_date"]
+            }
+            for player in players
+        ],
+        "teams": [
+            {
+                "id": team["id"],
+                "team_name": team["team_name"],
+                "player_ids": team["player_ids"],
+                "total_score": team["total_score"],
+                "games_played": team["games_played"],
+                "created_date": team["created_date"].isoformat() if isinstance(team["created_date"], datetime) else team["created_date"]
+            }
+            for team in teams
+        ],
+        "game_sessions": [
+            {
+                "id": session["id"],
+                "game_name": session["game_name"],
+                "game_date": session["game_date"].isoformat() if isinstance(session["game_date"], datetime) else session["game_date"],
+                "player_scores": session.get("player_scores", []),
+                "team_scores": session.get("team_scores", []),
+                "created_date": session["created_date"].isoformat() if isinstance(session["created_date"], datetime) else session["created_date"]
+            }
+            for session in sessions
+        ]
+    }
+    
+    # Convert to CSV
+    csv_content = convert_to_csv(export_data)
+    
+    # Create filename
+    filename = f'{group["group_name"].replace(" ", "_")}_history_{datetime.utcnow().strftime("%Y-%m-%d")}.csv'
+    
+    # Return CSV file with download headers
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Content-Type": "text/csv; charset=utf-8"
+        }
+    )
+
+@api_router.get("/groups/{group_id}/download-json")
+async def download_group_json(group_id: str):
+    """Download group data as JSON file"""
+    # Get the export data
+    export_data = await export_group_data(group_id)
+    
+    # Get group name for filename
+    group = await db.groups.find_one({"id": group_id})
+    filename = f'{group["group_name"].replace(" ", "_")}_history_{datetime.utcnow().strftime("%Y-%m-%d")}.json'
+    
+    # Return JSON file with download headers
+    import json
+    json_content = json.dumps(export_data, indent=2)
+    return Response(
+        content=json_content,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Content-Type": "application/json; charset=utf-8"
+        }
+    )
 
 from fastapi import UploadFile, File
 import json
