@@ -236,7 +236,7 @@ export default function GroupDashboardScreen() {
 
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/json', 'text/csv', 'text/plain'],
+        type: ['text/csv', 'text/comma-separated-values', 'application/csv'],
         copyToCacheDirectory: true,
       });
 
