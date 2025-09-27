@@ -261,16 +261,38 @@ export default function GroupDashboardScreen() {
     }
   };
 
-  const performImport = async (file: File) => {
+  const performImport = async (asset: any) => {
     setImporting(true);
     try {
-      // Create FormData for upload
-      const formData = new FormData();
-      formData.append('file', file);
+      let fileData;
+      
+      if (Platform.OS === 'web') {
+        // For web platform, create FormData with the file
+        const formData = new FormData();
+        formData.append('file', asset as File);
+        fileData = formData;
+      } else {
+        // For mobile platforms, read the file and create FormData
+        const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+        if (!fileInfo.exists) {
+          throw new Error('Selected file does not exist');
+        }
+
+        const formData = new FormData();
+        formData.append('file', {
+          uri: asset.uri,
+          type: asset.mimeType || 'application/json',
+          name: asset.name,
+        } as any);
+        fileData = formData;
+      }
 
       const uploadResponse = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/import`, {
         method: 'POST',
-        body: formData,
+        body: fileData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (!uploadResponse.ok) {
