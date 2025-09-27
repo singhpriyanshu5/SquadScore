@@ -610,6 +610,7 @@ const styles = StyleSheet.create({
   playerActions: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 16,
   },
   deleteButton: {
     width: 32,
