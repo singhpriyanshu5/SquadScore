@@ -413,6 +413,49 @@ export default function GroupDashboardScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Data Management Buttons */}
+        <View style={styles.dataManagementContainer}>
+          <Text style={styles.dataManagementTitle}>Data Management</Text>
+          
+          <View style={styles.dataManagementButtons}>
+            <TouchableOpacity
+              style={[styles.dataButton, styles.downloadButton]}
+              onPress={handleDownloadHistory}
+              disabled={exporting}
+              activeOpacity={0.8}
+            >
+              {exporting ? (
+                <ActivityIndicator size="small" color="#007AFF" />
+              ) : (
+                <Ionicons name="download" size={20} color="#007AFF" />
+              )}
+              <Text style={styles.downloadButtonText}>
+                {exporting ? 'Exporting...' : 'Download History'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.dataButton, styles.uploadButton]}
+              onPress={handleUploadHistory}
+              disabled={importing}
+              activeOpacity={0.8}
+            >
+              {importing ? (
+                <ActivityIndicator size="small" color="#ff6b35" />
+              ) : (
+                <Ionicons name="cloud-upload" size={20} color="#ff6b35" />
+              )}
+              <Text style={styles.uploadButtonText}>
+                {importing ? 'Importing...' : 'Upload History'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.dataManagementHint}>
+            Download to backup your group data, or upload to restore from a previous backup.
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
