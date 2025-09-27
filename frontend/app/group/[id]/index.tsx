@@ -206,11 +206,11 @@ export default function GroupDashboardScreen() {
         
         const csvData = await response.text();
         const filename = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
-        const fileUri = FileSystem.documentDirectory + filename;
+        const fileUri = documentDirectory + filename;
         
         // Write the CSV data to a file
-        await FileSystem.writeAsStringAsync(fileUri, csvData, {
-          encoding: FileSystem.EncodingType.UTF8,
+        await writeAsStringAsync(fileUri, csvData, {
+          encoding: EncodingType.UTF8,
         });
         
         // Check if sharing is available and share the file
