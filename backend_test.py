@@ -837,8 +837,15 @@ class BoardGameAPITester:
         return len(self.failed_tests) == 0
 
 if __name__ == "__main__":
+    import sys
+    
     tester = BoardGameAPITester()
-    success = tester.run_all_tests()
+    
+    # Check if we should run only download/upload tests
+    if len(sys.argv) > 1 and sys.argv[1] == "--download-upload-only":
+        success = tester.run_download_upload_tests_only()
+    else:
+        success = tester.run_all_tests()
     
     if success:
         print("\n🎉 All tests passed! Backend API is working correctly.")
