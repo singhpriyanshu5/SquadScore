@@ -193,145 +193,29 @@ export default function GroupDashboardScreen() {
       const csvContent = convertToCSV(exportData);
       const fileName = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
       
-      // Mobile-first approach - check for Web Share API first (works great on iPhone)
-      if (navigator.share) {
-        try {
-          // Create a blob for sharing
-          const blob = new Blob([csvContent], { type: 'text/csv' });
-          const file = new File([blob], fileName, { type: 'text/csv' });
-          
-          await navigator.share({
-            title: `${group.group_name} - Board Game History`,
-            text: 'Board game group history export',
-            files: [file]
-          });
-          
-          Alert.alert(
-            'Share Complete!',
-            'Your group history has been shared. You can save it to Files, email it, or share with other apps.'
-          );
-          return;
-        } catch (shareError) {
-          console.log('Web Share API failed, trying fallback:', shareError);
-        }
-      }
+      // Simple and direct approach - create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       
-      // Fallback 1: Data URL download (works on most desktop browsers)
-      try {
-        const dataUrl = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = fileName;
-        link.style.display = 'none';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        Alert.alert(
-          'Download Started!',
-          `Group history download has started as "${fileName}". Check your Downloads folder.`
-        );
-        return;
-      } catch (downloadError) {
-        console.log('Data URL download failed, trying next fallback:', downloadError);
-      }
+      // Create download link
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
       
-      // Fallback 2: Open in new window (mobile Safari friendly)
-      try {
-        const newWindow = window.open('', '_blank');
-        if (newWindow) {
-          newWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>${fileName}</title>
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <style>
-                body { font-family: monospace; padding: 20px; margin: 0; }
-                .container { max-width: 100%; overflow-x: auto; }
-                pre { white-space: pre-wrap; word-wrap: break-word; }
-                .download-info { background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-                .copy-btn { background: #007AFF; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; margin: 10px 5px; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="download-info">
-                  <h2>📊 ${group.group_name} - Board Game History</h2>
-                  <p><strong>File:</strong> ${fileName}</p>
-                  <p><strong>Instructions for iPhone:</strong></p>
-                  <ol>
-                    <li>Tap "Select All" button below</li>
-                    <li>Copy the selected text</li>
-                    <li>Open Notes or Files app</li>
-                    <li>Create new file and paste content</li>
-                    <li>Save as "${fileName}"</li>
-                  </ol>
-                </div>
-                <button class="copy-btn" onclick="selectAll()">📋 Select All CSV Data</button>
-                <button class="copy-btn" onclick="copyToClipboard()">📎 Copy to Clipboard</button>
-                <pre id="csvData">${csvContent}</pre>
-              </div>
-              <script>
-                function selectAll() {
-                  const range = document.createRange();
-                  range.selectNode(document.getElementById('csvData'));
-                  window.getSelection().removeAllRanges();
-                  window.getSelection().addRange(range);
-                  alert('CSV data selected! Now copy it (Ctrl+C or Cmd+C)');
-                }
-                function copyToClipboard() {
-                  navigator.clipboard.writeText(\`${csvContent.replace(/`/g, '\\`')}\`).then(() => {
-                    alert('CSV data copied to clipboard! You can now paste it into any app.');
-                  }).catch(() => {
-                    selectAll();
-                  });
-                }
-              </script>
-            </body>
-            </html>
-          `);
-          newWindow.document.close();
-          
-          Alert.alert(
-            'CSV Data Ready!',
-            'Your group history has been opened in a new window with iPhone-friendly copy options.'
-          );
-          return;
-        }
-      } catch (windowError) {
-        console.log('New window failed, using final fallback:', windowError);
-      }
+      // Add to document, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
-      // Fallback 3: Show in alert with copy option (ultimate fallback)
+      // Clean up the URL object
+      URL.revokeObjectURL(url);
+      
       Alert.alert(
-        '📊 Export Ready - Copy & Save',
-        'Tap "Copy Data" to copy your group history, then paste it into Notes or Files app and save as a CSV file.',
-        [
-          {
-            text: 'Copy Data',
-            onPress: () => {
-              if (navigator.clipboard) {
-                navigator.clipboard.writeText(csvContent).then(() => {
-                  Alert.alert('Copied!', 'CSV data copied to clipboard. Open Notes app and paste to save.');
-                }).catch(() => {
-                  console.log('=== COPY THIS CSV DATA ===');
-                  console.log(csvContent);
-                  console.log('=== END CSV DATA ===');
-                  Alert.alert('Data in Console', 'Full CSV data has been logged to browser console. Open developer tools to copy it.');
-                });
-              } else {
-                console.log('=== COPY THIS CSV DATA ===');
-                console.log(csvContent);
-                console.log('=== END CSV DATA ===');
-                Alert.alert('Data in Console', 'Full CSV data has been logged to browser console. Open developer tools to copy it.');
-              }
-            }
-          },
-          { text: 'Cancel' }
-        ]
+        'Download Complete!',
+        `Your board game history has been downloaded as "${fileName}". Check your Downloads folder or Files app.`
       );
+      
     } catch (error) {
       console.error('Error exporting group data:', error);
       Alert.alert('Export Failed', 'Failed to export group data. Please try again.');
