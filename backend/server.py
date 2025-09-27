@@ -589,6 +589,17 @@ async def get_group_stats(group_id: str):
         top_player=top_player
     )
 
+@api_router.get("/groups/{group_id}/games", response_model=List[str])
+async def get_group_games(group_id: str):
+    """Get list of unique game names played in a group"""
+    pipeline = [
+        {"$match": {"group_id": group_id}},
+        {"$group": {"_id": "$game_name"}},
+        {"$sort": {"_id": 1}}
+    ]
+    result = await db.game_sessions.aggregate(pipeline).to_list(1000)
+    return [item["_id"] for item in result]
+
 # Include the router in the main app
 app.include_router(api_router)
 
