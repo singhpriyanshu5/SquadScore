@@ -40,11 +40,11 @@ interface GameSession {
 }
 
 export default function GamesHistoryScreen() {
-  const [gameSessions, setGameSessions] = useState<GameSession[]>([]);
+  const [gameSessions, setGameSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const [deletingSessionId, setDeletingSessionId] = useState(null);
+  const { id } = useLocalSearchParams();
 
   useFocusEffect(
     useCallback(() => {
