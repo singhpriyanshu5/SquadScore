@@ -196,6 +196,71 @@ async def get_group_players(group_id: str):
     players = await db.players.find({"group_id": group_id}).to_list(1000)
     return [Player(**player) for player in players]
 
+class PlayerUpdate(BaseModel):
+    player_name: str
+    emoji: str
+
+@api_router.put("/players/{player_id}", response_model=Player)
+async def update_player(player_id: str, player_data: PlayerUpdate):
+    """Update a player's name and emoji"""
+    # Check if player exists
+    existing_player = await db.players.find_one({"id": player_id})
+    if not existing_player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    
+    # Check if new name already exists in the same group (if name is changing)
+    if player_data.player_name != existing_player["player_name"]:
+        name_exists = await db.players.find_one({
+            "player_name": player_data.player_name,
+            "group_id": existing_player["group_id"],
+            "id": {"$ne": player_id}
+        })
+        if name_exists:
+            raise HTTPException(status_code=400, detail="Player name already exists in this group")
+    
+    # Update player
+    update_result = await db.players.update_one(
+        {"id": player_id},
+        {"$set": {
+            "player_name": player_data.player_name,
+            "emoji": player_data.emoji
+        }}
+    )
+    
+    if update_result.modified_count == 0:
+        raise HTTPException(status_code=500, detail="Failed to update player")
+    
+    # Return updated player
+    updated_player = await db.players.find_one({"id": player_id})
+    return Player(**updated_player)
+
+@api_router.delete("/players/{player_id}")
+async def delete_player(player_id: str):
+    """Delete a player and remove them from all teams and game sessions"""
+    # Check if player exists
+    player = await db.players.find_one({"id": player_id})
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    
+    # Remove player from all teams
+    await db.teams.update_many(
+        {"player_ids": player_id},
+        {"$pull": {"player_ids": player_id}}
+    )
+    
+    # Remove player scores from all game sessions
+    await db.game_sessions.update_many(
+        {"player_scores.player_id": player_id},
+        {"$pull": {"player_scores": {"player_id": player_id}}}
+    )
+    
+    # Delete the player
+    delete_result = await db.players.delete_one({"id": player_id})
+    if delete_result.deleted_count == 0:
+        raise HTTPException(status_code=500, detail="Failed to delete player")
+    
+    return {"message": "Player deleted successfully"}
+
 # Team Management Routes
 @api_router.post("/teams", response_model=Team)
 async def create_team(team_data: TeamCreate):
