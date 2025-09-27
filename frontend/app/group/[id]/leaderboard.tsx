@@ -237,48 +237,63 @@ export default function LeaderboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Tab Selector */}
-      <View style={styles.tabContainer}>
+      {/* Tab Selector with Filter Button */}
+      <View style={styles.headerContainer}>
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTab === 'players' && styles.activeTab
+            ]}
+            onPress={() => setActiveTab('players')}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name="person" 
+              size={20} 
+              color={activeTab === 'players' ? 'white' : '#007AFF'} 
+            />
+            <Text style={[
+              styles.tabText,
+              activeTab === 'players' && styles.activeTabText
+            ]}>
+              Players
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTab === 'teams' && styles.activeTab
+            ]}
+            onPress={() => setActiveTab('teams')}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name="people" 
+              size={20} 
+              color={activeTab === 'teams' ? 'white' : '#007AFF'} 
+            />
+            <Text style={[
+              styles.tabText,
+              activeTab === 'teams' && styles.activeTabText
+            ]}>
+              Teams
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Filter Button */}
         <TouchableOpacity
-          style={[
-            styles.tab,
-            activeTab === 'players' && styles.activeTab
-          ]}
-          onPress={() => setActiveTab('players')}
+          style={styles.filterButton}
+          onPress={() => setShowFilters(true)}
           activeOpacity={0.7}
         >
           <Ionicons 
-            name="person" 
+            name="funnel" 
             size={20} 
-            color={activeTab === 'players' ? 'white' : '#007AFF'} 
+            color={(selectedGame || selectedYear || selectedMonth) ? '#007AFF' : '#666'} 
           />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'players' && styles.activeTabText
-          ]}>
-            Players
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[
-            styles.tab,
-            activeTab === 'teams' && styles.activeTab
-          ]}
-          onPress={() => setActiveTab('teams')}
-          activeOpacity={0.7}
-        >
-          <Ionicons 
-            name="people" 
-            size={20} 
-            color={activeTab === 'teams' ? 'white' : '#007AFF'} 
-          />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'teams' && styles.activeTabText
-          ]}>
-            Teams
-          </Text>
         </TouchableOpacity>
       </View>
 
