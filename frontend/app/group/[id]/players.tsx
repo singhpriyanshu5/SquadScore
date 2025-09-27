@@ -552,8 +552,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
+    fontWeight: '500',
   },
   joinedDate: {
     fontSize: 12,
