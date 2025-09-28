@@ -26,11 +26,15 @@ interface Group {
 export default function HomeScreen() {
   const [recentGroups, setRecentGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    loadRecentGroups();
-  }, []);
+  // Load groups when screen comes into focus (e.g., after creating a new group)
+  useFocusEffect(
+    useCallback(() => {
+      loadRecentGroups();
+    }, [])
+  );
 
   const loadRecentGroups = async () => {
     try {
