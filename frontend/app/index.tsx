@@ -60,6 +60,32 @@ export default function HomeScreen() {
     loadRecentGroups(true);
   }, []);
 
+  const removeGroupFromRecents = async (groupId: string) => {
+    try {
+      const updatedGroups = recentGroups.filter(group => group.id !== groupId);
+      await AsyncStorage.setItem('recent_groups', JSON.stringify(updatedGroups));
+      setRecentGroups(updatedGroups);
+    } catch (error) {
+      console.error('Error removing group from recents:', error);
+      Alert.alert('Error', 'Failed to remove group from recents. Please try again.');
+    }
+  };
+
+  const handleRemoveGroup = (group: Group) => {
+    Alert.alert(
+      'Remove Group',
+      `Remove "${group.group_name}" from your recent groups? You can always rejoin using the group code: ${group.group_code}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => removeGroupFromRecents(group.id)
+        }
+      ]
+    );
+  };
+
   const handleGroupPress = (groupId: string) => {
     router.push(`/group/${groupId}`);
   };
