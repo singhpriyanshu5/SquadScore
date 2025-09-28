@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Backend API Testing for Board Game Score Tracker
+Focus: Testing the fix for new player visibility issue in normalized endpoints
+"""
 
 import asyncio
 import aiohttp
@@ -6,10 +10,14 @@ import json
 import os
 from datetime import datetime
 import sys
+import uuid
 
 # Get backend URL from environment
 BACKEND_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://scoreleader.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
+
+print(f"🎯 Testing backend at: {API_BASE}")
+print("Focus: New Player Visibility Fix Verification")
 
 class PlayerCreationRetrievalTest:
     def __init__(self):
