@@ -346,7 +346,16 @@ export default function GroupDashboardScreen() {
         {/* Group Header */}
         <View style={styles.header}>
           <View style={styles.groupInfo}>
-            <Text style={styles.groupName}>{group.group_name}</Text>
+            <View style={styles.groupNameContainer}>
+              <Text style={styles.groupName}>{group.group_name}</Text>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => handleEditGroupName()}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="pencil" size={16} color="#007AFF" />
+              </TouchableOpacity>
+            </View>
             <Text style={styles.groupCode}>Code: {group.group_code}</Text>
           </View>
           <TouchableOpacity
