@@ -966,20 +966,62 @@ def convert_to_csv(data):
             lines.append(f'"{team["team_name"]}","{players_str}",{team["total_score"]},{team["games_played"]},{avg_score:.2f},{normalized_total},{normalized_avg},{created_date}')
         lines.append('')
     
-    # Add game sessions section
+    # Add game sessions section with normalized scores
     if data["game_sessions"]:
         lines.append('GAME SESSIONS')
-        lines.append('Game Name,Date,Player/Team,Score,Type')
+        lines.append('Game Name,Date,Player/Team,Raw Score,Normalized Score,Type')
+        
+        # Calculate normalization parameters per game for individual sessions
+        game_scores = {}
+        for session in data["game_sessions"]:
+            game_name = session["game_name"]
+            if game_name not in game_scores:
+                game_scores[game_name] = []
+            
+            # Collect all scores for this game
+            for player_score in session.get("player_scores", []):
+                game_scores[game_name].append(player_score["score"])
+            for team_score in session.get("team_scores", []):
+                game_scores[game_name].append(team_score["score"])
+        
+        # Calculate normalization parameters
+        game_normalization = {}
+        for game_name, scores in game_scores.items():
+            if len(scores) > 0:
+                min_score = min(scores)
+                max_score = max(scores)
+                game_normalization[game_name] = {
+                    "min": min_score,
+                    "max": max_score,
+                    "range": max_score - min_score if max_score != min_score else 1
+                }
+        
         for session in data["game_sessions"]:
             game_date = session["game_date"].split("T")[0]
+            game_name = session["game_name"]
+            normalization = game_normalization.get(game_name)
             
             # Individual player scores
             for player_score in session.get("player_scores", []):
-                lines.append(f'"{session["game_name"]}",{game_date},"{player_score["player_name"]}",{player_score["score"]},Individual')
+                raw_score = player_score["score"]
+                if normalization and normalization["range"] > 0:
+                    normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+                else:
+                    normalized_score = 0.5  # Default for single scores
+                
+                normalized_score = max(0.0, min(1.0, normalized_score))  # Ensure 0-1 range
+                lines.append(f'"{game_name}",{game_date},"{player_score["player_name"]}",{raw_score},{normalized_score:.3f},Individual')
             
             # Team scores
             for team_score in session.get("team_scores", []):
-                lines.append(f'"{session["game_name"]}",{game_date},"{team_score["team_name"]}",{team_score["score"]},Team')
+                raw_score = team_score["score"]
+                if normalization and normalization["range"] > 0:
+                    normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+                else:
+                    normalized_score = 0.5  # Default for single scores
+                
+                normalized_score = max(0.0, min(1.0, normalized_score))  # Ensure 0-1 range
+                lines.append(f'"{game_name}",{game_date},"{team_score["team_name"]}",{raw_score},{normalized_score:.3f},Team')
     
     return '\n'.join(lines)
 
