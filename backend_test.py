@@ -718,12 +718,12 @@ class CSVDownloadTester:
         return len(self.failed_tests) == 0
 
 if __name__ == "__main__":
-    tester = NormalizedScoringTester()
-    success = tester.run_normalized_scoring_tests()
+    tester = CSVDownloadTester()
+    success = tester.run_enhanced_csv_tests()
     
     if success:
-        print("\n🎉 All normalized scoring tests passed! The system is working correctly.")
+        print("\n🎉 All enhanced CSV download tests passed! The functionality is working correctly.")
         sys.exit(0)
     else:
-        print("\n⚠️  Some normalized scoring tests failed. Check the details above.")
+        print("\n⚠️  Some enhanced CSV download tests failed. Check the details above.")
         sys.exit(1)
