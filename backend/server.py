@@ -1025,6 +1025,31 @@ def parse_csv(csv_content: str):
     
     return data
 
+@api_router.put("/groups/{group_id}/name")
+async def update_group_name(group_id: str, request: dict):
+    """Update group name"""
+    group = await db.groups.find_one({"id": group_id})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    new_name = request.get("group_name", "").strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="Group name cannot be empty")
+    
+    if len(new_name) > 50:
+        raise HTTPException(status_code=400, detail="Group name must be 50 characters or less")
+    
+    # Update the group name
+    await db.groups.update_one(
+        {"id": group_id},
+        {"$set": {"group_name": new_name}}
+    )
+    
+    return {
+        "message": "Group name updated successfully",
+        "group_name": new_name
+    }
+
 @api_router.post("/groups/{group_id}/import-csv")
 async def import_group_csv(group_id: str, file: UploadFile = File(...)):
     """Import group data from uploaded CSV file to reset group"""
