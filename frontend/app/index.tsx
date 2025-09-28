@@ -358,7 +358,6 @@ export default function HomeScreen() {
                 group={group}
                 onPress={() => handleGroupPress(group.id)}
                 onRemove={() => handleRemoveGroup(group)}
-                onEdit={() => handleEditGroup(group)}
               />
             ))}
           </View>
