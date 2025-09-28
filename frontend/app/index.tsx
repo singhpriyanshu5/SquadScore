@@ -25,6 +25,90 @@ interface Group {
   created_date: string;
 }
 
+// SwipeableGroupCard component
+const SwipeableGroupCard = ({ 
+  group, 
+  onPress, 
+  onRemove 
+}: { 
+  group: Group; 
+  onPress: () => void; 
+  onRemove: () => void; 
+}) => {
+  const translateX = new Animated.Value(0);
+
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: (evt, gestureState) => {
+      return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
+    },
+    onPanResponderMove: (evt, gestureState) => {
+      if (gestureState.dx < 0) { // Only allow left swipe
+        translateX.setValue(gestureState.dx);
+      }
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      if (gestureState.dx < -100) {
+        // Show remove button
+        Animated.spring(translateX, {
+          toValue: -80,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        // Reset position
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+  });
+
+  const resetPosition = () => {
+    Animated.spring(translateX, {
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <View style={styles.swipeableContainer}>
+      <View style={styles.removeButtonContainer}>
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => {
+            resetPosition();
+            onRemove();
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="trash" size={20} color="white" />
+          <Text style={styles.removeButtonText}>Remove</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <Animated.View
+        style={[
+          styles.groupCardContainer,
+          { transform: [{ translateX }] }
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <TouchableOpacity
+          style={styles.groupCard}
+          onPress={onPress}
+          activeOpacity={0.7}
+        >
+          <View style={styles.groupInfo}>
+            <Text style={styles.groupName}>{group.group_name}</Text>
+            <Text style={styles.groupCode}>Code: {group.group_code}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#666" />
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+};
+
 export default function HomeScreen() {
   const [recentGroups, setRecentGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
