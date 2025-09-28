@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """
-Backend API Testing for Board Game Score Tracker
-Focus: Testing the fix for new player visibility issue in normalized endpoints
+Backend Testing Script for Enhanced CSV Download with Game-Level Normalized Scores
+Focus: Testing /api/groups/{group_id}/download-csv endpoint with normalized scoring
 """
 
-import asyncio
-import aiohttp
+import requests
 import json
-import os
+import csv
+from io import StringIO
 from datetime import datetime
 import sys
-import uuid
+import os
 
 # Get backend URL from environment
 BACKEND_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://scoreleader.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 print(f"🎯 Testing backend at: {API_BASE}")
-print("Focus: New Player Visibility Fix Verification")
+print("Focus: Enhanced CSV Download with Game-Level Normalized Scores")
 
 class NewPlayerVisibilityTest:
     def __init__(self):
