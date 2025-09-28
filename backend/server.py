@@ -949,6 +949,55 @@ async def download_group_csv(group_id: str):
     teams = await db.teams.find({"group_id": group_id}).to_list(1000)
     sessions = await db.game_sessions.find({"group_id": group_id}).sort("game_date", 1).to_list(1000)
     
+    # Get normalized scores for players and teams
+    player_normalized_stats = await calculate_normalized_scores(group_id)
+    
+    # Calculate normalized scores for teams
+    team_normalized_stats = {}
+    game_scores = {}
+    
+    for session in sessions:
+        game_name = session["game_name"]
+        if game_name not in game_scores:
+            game_scores[game_name] = []
+        
+        for team_score in session.get("team_scores", []):
+            game_scores[game_name].append(team_score["score"])
+    
+    # Calculate normalization parameters for teams
+    game_normalization = {}
+    for game_name, scores in game_scores.items():
+        if len(scores) > 0:
+            min_score = min(scores)
+            max_score = max(scores)
+            game_normalization[game_name] = {
+                "min": min_score,
+                "max": max_score,
+                "range": max_score - min_score if max_score != min_score else 1
+            }
+    
+    # Calculate normalized team stats
+    for session in sessions:
+        game_name = session["game_name"]
+        normalization = game_normalization.get(game_name)
+        
+        if normalization:
+            for team_score in session.get("team_scores", []):
+                team_id = team_score["team_id"]
+                raw_score = team_score["score"]
+                normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+                
+                if team_id not in team_normalized_stats:
+                    team_normalized_stats[team_id] = {
+                        "total_normalized_score": 0,
+                        "total_raw_score": 0,
+                        "games_played": 0
+                    }
+                
+                team_normalized_stats[team_id]["total_normalized_score"] += normalized_score
+                team_normalized_stats[team_id]["total_raw_score"] += raw_score
+                team_normalized_stats[team_id]["games_played"] += 1
+    
     # Format export data
     export_data = {
         "group": {
