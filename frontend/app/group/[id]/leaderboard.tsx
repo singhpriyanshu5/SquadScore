@@ -317,7 +317,7 @@ export default function LeaderboardScreen() {
             <View style={styles.infoContainer}>
               <Ionicons name="information-circle-outline" size={16} color="#666" />
               <Text style={styles.infoText}>
-                Scores are normalized (0-1) per game to ensure fair rankings across different game types
+                Shows normalized scores for fair ranking (actual scores in parentheses)
               </Text>
             </View>
             
