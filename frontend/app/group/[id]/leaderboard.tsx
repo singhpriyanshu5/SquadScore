@@ -19,9 +19,11 @@ const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 interface LeaderboardEntry {
   id: string;
   name: string;
-  total_score: number;
+  total_score: number; // Normalized score
   games_played: number;
-  average_score: number;
+  average_score: number; // Normalized average
+  raw_total_score?: number; // Actual scores entered
+  raw_average_score?: number; // Actual average scores
 }
 
 type LeaderboardType = 'players' | 'teams';
