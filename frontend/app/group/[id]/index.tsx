@@ -626,11 +626,21 @@ const styles = StyleSheet.create({
   groupInfo: {
     flex: 1,
   },
+  groupNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   groupName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1a1a1a',
     marginBottom: 4,
+  },
+  editButton: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#f0f0f0',
   },
   groupCode: {
     fontSize: 16,
