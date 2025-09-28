@@ -561,9 +561,11 @@ async def get_player_leaderboard(
         leaderboard.append(LeaderboardEntry(
             id=player_id,
             name=stats["name"],
-            total_score=round(stats["total_normalized_score"], 2),  # Use normalized score for ranking
+            total_score=round(stats["total_normalized_score"], 2),  # Normalized score for ranking
             games_played=stats["games_played"],
-            average_score=round(avg_normalized_score, 3)  # Show normalized average (3 decimals for precision)
+            average_score=round(avg_normalized_score, 3),  # Normalized average
+            raw_total_score=stats["total_raw_score"],  # Actual scores entered
+            raw_average_score=round(stats["total_raw_score"] / stats["games_played"] if stats["games_played"] > 0 else 0, 1)
         ))
     
     # Sort by normalized total score
