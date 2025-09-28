@@ -998,7 +998,7 @@ async def download_group_csv(group_id: str):
                 team_normalized_stats[team_id]["total_raw_score"] += raw_score
                 team_normalized_stats[team_id]["games_played"] += 1
     
-    # Format export data
+    # Format export data with normalized scores
     export_data = {
         "group": {
             "id": group["id"],
@@ -1014,7 +1014,9 @@ async def download_group_csv(group_id: str):
                 "emoji": player.get("emoji", "😀"),
                 "total_score": player["total_score"],
                 "games_played": player["games_played"],
-                "created_date": player["created_date"].isoformat() if isinstance(player["created_date"], datetime) else player["created_date"]
+                "created_date": player["created_date"].isoformat() if isinstance(player["created_date"], datetime) else player["created_date"],
+                "normalized_total_score": round(player_normalized_stats.get(player["id"], {}).get("total_normalized_score", 0), 2),
+                "normalized_average_score": round(player_normalized_stats.get(player["id"], {}).get("total_normalized_score", 0) / player["games_played"] if player["games_played"] > 0 else 0, 3)
             }
             for player in players
         ],
