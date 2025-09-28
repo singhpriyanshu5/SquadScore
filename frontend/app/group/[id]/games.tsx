@@ -410,10 +410,18 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     flex: 1,
   },
+  scoreValues: {
+    alignItems: 'flex-end',
+  },
   scoreValue: {
     fontSize: 14,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  scoreSubValue: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 2,
   },
   emptyContainer: {
     alignItems: 'center',
