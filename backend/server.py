@@ -837,11 +837,13 @@ def convert_to_csv(data):
     
     # Add players section
     lines.append('PLAYERS')
-    lines.append('Player Name,Emoji,Total Score,Games Played,Average Score,Joined Date')
+    lines.append('Player Name,Emoji,Raw Total Score,Games Played,Raw Average Score,Normalized Total Score,Normalized Average Score,Joined Date')
     for player in data["players"]:
         avg_score = player["total_score"] / player["games_played"] if player["games_played"] > 0 else 0
         joined_date = player["created_date"].split("T")[0]
-        lines.append(f'"{player["player_name"]}",{player["emoji"]},{player["total_score"]},{player["games_played"]},{avg_score:.2f},{joined_date}')
+        normalized_total = player.get("normalized_total_score", 0)
+        normalized_avg = player.get("normalized_average_score", 0)
+        lines.append(f'"{player["player_name"]}",{player["emoji"]},{player["total_score"]},{player["games_played"]},{avg_score:.2f},{normalized_total},{normalized_avg},{joined_date}')
     lines.append('')
     
     # Add teams section
