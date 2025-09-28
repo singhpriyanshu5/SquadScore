@@ -288,6 +288,7 @@ export default function PlayersScreen() {
                 <View style={styles.playerStats}>
                   <View style={styles.statItem}>
                     <Text style={styles.statValue}>{player.total_score}</Text>
+                    <Text style={styles.statSubValue}>({player.raw_total_score || 0})</Text>
                     <Text style={styles.statLabel}>Total Score</Text>
                   </View>
                   <View style={styles.statItem}>
@@ -296,6 +297,7 @@ export default function PlayersScreen() {
                   </View>
                   <View style={styles.statItem}>
                     <Text style={styles.statValue}>{getAverageScore(player)}</Text>
+                    <Text style={styles.statSubValue}>({player.raw_average_score || 0})</Text>
                     <Text style={styles.statLabel}>Average</Text>
                   </View>
                 </View>
