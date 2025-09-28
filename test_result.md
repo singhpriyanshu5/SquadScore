@@ -291,8 +291,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Enhanced CSV Download with Raw and Normalized Scores"
-  stuck_tasks: []
+    - "Player Management APIs"
+  stuck_tasks:
+    - "Player Management APIs"
   test_all: false
   test_priority: "high_first"
 
