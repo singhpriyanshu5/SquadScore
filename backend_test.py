@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """
-Enhanced CSV Download Test Suite for Board Game Score Tracker
-Tests the ENHANCED CSV download functionality with both raw and normalized scores
+Player Creation and Retrieval Investigation Test Suite
+Investigates specific issues with player creation and retrieval endpoints
 """
 
-import requests
+import asyncio
+import aiohttp
 import json
-import csv
-from io import StringIO
-from datetime import datetime, timezone, timedelta
-import time
-import sys
 import os
+import sys
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -19,7 +17,7 @@ load_dotenv('/app/frontend/.env')
 
 # Get backend URL from environment
 BACKEND_URL = os.getenv('EXPO_PUBLIC_BACKEND_URL', 'https://scoreleader.preview.emergentagent.com')
-BASE_URL = f"{BACKEND_URL}/api"
+API_BASE = f"{BACKEND_URL}/api"
 
 class CSVDownloadTester:
     def __init__(self):
