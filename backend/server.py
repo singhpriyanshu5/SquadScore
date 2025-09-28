@@ -425,6 +425,121 @@ async def delete_game_session(session_id: str):
     return {"message": "Game session deleted successfully"}
 
 # Leaderboard and Dashboard Routes
+async def calculate_normalized_scores(group_id: str, game_name: Optional[str] = None, year: Optional[int] = None, month: Optional[int] = None):
+    """Calculate normalized scores (0-1) for each game to ensure fair leaderboard"""
+    # Build session filter
+    session_filter = {"group_id": group_id}
+    if game_name:
+        session_filter["game_name"] = {"$regex": game_name, "$options": "i"}
+    if year or month:
+        date_filter = {}
+        if year:
+            if month:
+                from datetime import datetime
+                start_date = datetime(year, month, 1)
+                if month == 12:
+                    end_date = datetime(year + 1, 1, 1)
+                else:
+                    end_date = datetime(year, month + 1, 1)
+                date_filter = {"$gte": start_date, "$lt": end_date}
+            else:
+                from datetime import datetime
+                start_date = datetime(year, 1, 1)
+                end_date = datetime(year + 1, 1, 1)
+                date_filter = {"$gte": start_date, "$lt": end_date}
+        session_filter["game_date"] = date_filter
+
+    sessions = await db.game_sessions.find(session_filter).to_list(1000)
+    
+    # Group sessions by game name and collect all scores
+    game_scores = {}
+    player_stats = {}
+    
+    for session in sessions:
+        game_name = session["game_name"]
+        if game_name not in game_scores:
+            game_scores[game_name] = []
+        
+        # Collect all scores for this game session
+        session_scores = []
+        
+        # Individual player scores
+        for player_score in session.get("player_scores", []):
+            session_scores.append(player_score["score"])
+            game_scores[game_name].append(player_score["score"])
+        
+        # Team scores (we'll use the team score for normalization)
+        for team_score in session.get("team_scores", []):
+            session_scores.append(team_score["score"])
+            game_scores[game_name].append(team_score["score"])
+    
+    # Calculate min/max for each game for normalization
+    game_normalization = {}
+    for game_name, scores in game_scores.items():
+        if len(scores) > 0:
+            min_score = min(scores)
+            max_score = max(scores)
+            game_normalization[game_name] = {
+                "min": min_score,
+                "max": max_score,
+                "range": max_score - min_score if max_score != min_score else 1
+            }
+    
+    # Now calculate normalized scores for players
+    for session in sessions:
+        game_name = session["game_name"]
+        normalization = game_normalization.get(game_name)
+        
+        if not normalization:
+            continue
+            
+        # Process individual player scores
+        for player_score in session.get("player_scores", []):
+            player_id = player_score["player_id"]
+            raw_score = player_score["score"]
+            
+            # Normalize score to 0-1 range
+            normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+            
+            if player_id not in player_stats:
+                player_stats[player_id] = {
+                    "name": player_score["player_name"],
+                    "total_normalized_score": 0,
+                    "total_raw_score": 0,
+                    "games_played": 0
+                }
+            
+            player_stats[player_id]["total_normalized_score"] += normalized_score
+            player_stats[player_id]["total_raw_score"] += raw_score
+            player_stats[player_id]["games_played"] += 1
+        
+        # Process team scores (distributed to players)
+        for team_score in session.get("team_scores", []):
+            if team_score.get("player_ids"):
+                raw_score = team_score["score"]
+                normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+                
+                # Distribute normalized score equally among team members
+                normalized_score_per_player = normalized_score / len(team_score["player_ids"])
+                raw_score_per_player = raw_score // len(team_score["player_ids"])
+                
+                for player_id in team_score["player_ids"]:
+                    if player_id not in player_stats:
+                        player = await db.players.find_one({"id": player_id})
+                        player_name = player["player_name"] if player else "Unknown"
+                        player_stats[player_id] = {
+                            "name": player_name,
+                            "total_normalized_score": 0,
+                            "total_raw_score": 0,
+                            "games_played": 0
+                        }
+                    
+                    player_stats[player_id]["total_normalized_score"] += normalized_score_per_player
+                    player_stats[player_id]["total_raw_score"] += raw_score_per_player
+                    player_stats[player_id]["games_played"] += 1
+    
+    return player_stats
+
 @api_router.get("/groups/{group_id}/leaderboard/players", response_model=List[LeaderboardEntry])
 async def get_player_leaderboard(
     group_id: str,
