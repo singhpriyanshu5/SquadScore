@@ -572,20 +572,77 @@ async def get_player_leaderboard(
 
 @api_router.get("/groups/{group_id}/leaderboard/teams", response_model=List[LeaderboardEntry])
 async def get_team_leaderboard(group_id: str):
-    """Get team leaderboard for a group"""
-    teams = await db.teams.find({"group_id": group_id}).sort("total_score", -1).to_list(1000)
+    """Get team leaderboard for a group using normalized scores"""
+    # Calculate normalized scores for teams
+    sessions = await db.game_sessions.find({"group_id": group_id}).to_list(1000)
     
+    # Group sessions by game name and collect all team scores
+    game_scores = {}
+    team_stats = {}
+    
+    for session in sessions:
+        game_name = session["game_name"]
+        if game_name not in game_scores:
+            game_scores[game_name] = []
+        
+        # Collect all team scores for this game
+        for team_score in session.get("team_scores", []):
+            game_scores[game_name].append(team_score["score"])
+    
+    # Calculate min/max for each game for normalization
+    game_normalization = {}
+    for game_name, scores in game_scores.items():
+        if len(scores) > 0:
+            min_score = min(scores)
+            max_score = max(scores)
+            game_normalization[game_name] = {
+                "min": min_score,
+                "max": max_score,
+                "range": max_score - min_score if max_score != min_score else 1
+            }
+    
+    # Calculate normalized scores for teams
+    for session in sessions:
+        game_name = session["game_name"]
+        normalization = game_normalization.get(game_name)
+        
+        if not normalization:
+            continue
+            
+        for team_score in session.get("team_scores", []):
+            team_id = team_score["team_id"]
+            raw_score = team_score["score"]
+            
+            # Normalize score to 0-1 range
+            normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+            
+            if team_id not in team_stats:
+                team_stats[team_id] = {
+                    "name": team_score["team_name"],
+                    "total_normalized_score": 0,
+                    "total_raw_score": 0,
+                    "games_played": 0
+                }
+            
+            team_stats[team_id]["total_normalized_score"] += normalized_score
+            team_stats[team_id]["total_raw_score"] += raw_score
+            team_stats[team_id]["games_played"] += 1
+    
+    # Convert to leaderboard format
     leaderboard = []
-    for team in teams:
-        avg_score = team["total_score"] / team["games_played"] if team["games_played"] > 0 else 0
+    for team_id, stats in team_stats.items():
+        avg_normalized_score = stats["total_normalized_score"] / stats["games_played"] if stats["games_played"] > 0 else 0
+        
         leaderboard.append(LeaderboardEntry(
-            id=team["id"],
-            name=team["team_name"],
-            total_score=team["total_score"],
-            games_played=team["games_played"],
-            average_score=round(avg_score, 2)
+            id=team_id,
+            name=stats["name"],
+            total_score=round(stats["total_normalized_score"], 2),  # Use normalized score for ranking
+            games_played=stats["games_played"],
+            average_score=round(avg_normalized_score, 3)  # Show normalized average
         ))
     
+    # Sort by normalized total score
+    leaderboard.sort(key=lambda x: x.total_score, reverse=True)
     return leaderboard
 
 @api_router.get("/groups/{group_id}/stats", response_model=GroupStats)
