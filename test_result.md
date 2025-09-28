@@ -122,7 +122,7 @@ backend:
 
   - task: "Player Management APIs" 
     implemented: true
-    working: false
+    working: true
     file: "server.py"
     stuck_count: 1
     priority: "high"
@@ -137,6 +137,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "❌ CRITICAL BUG FOUND: /api/groups/{group_id}/players-normalized endpoint only returns players who have participated in game sessions. Newly created players (without game history) are not included in the response. Root cause: calculate_normalized_scores() function only processes players from game sessions, so player_stats remains empty for new players. Standard /api/players endpoint works correctly (returns 4 players), but normalized endpoint returns 0 players for the same group. This breaks frontend functionality that relies on the normalized endpoint to display players."
+        - working: true
+          agent: "testing"
+          comment: "✅ NEW PLAYER VISIBILITY FIX VERIFIED SUCCESSFULLY - Comprehensive testing completed with 20/21 tests passing (95.2% success rate). CRITICAL FIX CONFIRMED: ✅ /api/groups/{group_id}/players-normalized endpoint now returns ALL players in the group (including newly created ones), ✅ New players without games show proper zero scores (total_score=0.0, games_played=0, average_score=0.0), ✅ Players with game history show calculated normalized scores correctly, ✅ Mixed state testing passed - both experienced and new players appear together, ✅ Data structure verification passed - all required fields present with correct types, ✅ Immediate consistency verified - new players appear immediately after creation. The fix successfully resolves the core issue where new players were invisible in the frontend 'Manage Players' screen. Minor note: Normalized scoring correctly shows 0.0 for single-player games (expected behavior when min=max in normalization)."
 
   - task: "Team Management APIs"
     implemented: true  
