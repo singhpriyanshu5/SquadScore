@@ -36,7 +36,11 @@ export default function HomeScreen() {
     }, [])
   );
 
-  const loadRecentGroups = async () => {
+  const loadRecentGroups = async (showRefreshIndicator = false) => {
+    if (showRefreshIndicator) {
+      setRefreshing(true);
+    }
+    
     try {
       const groups = await AsyncStorage.getItem('recent_groups');
       if (groups) {
@@ -46,8 +50,13 @@ export default function HomeScreen() {
       console.error('Error loading recent groups:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const handleRefresh = useCallback(() => {
+    loadRecentGroups(true);
+  }, []);
 
   const handleGroupPress = (groupId: string) => {
     router.push(`/group/${groupId}`);
