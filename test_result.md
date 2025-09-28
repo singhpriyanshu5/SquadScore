@@ -238,6 +238,21 @@ frontend:
           agent: "testing"
           comment: "✅ NEW CSV Import functionality tested successfully. Tested /api/groups/{group_id}/import-csv endpoint - accepts CSV file uploads, correctly parses CSV format with sections (GROUP INFORMATION, PLAYERS, TEAMS, GAME SESSIONS), replaces existing group data, returns proper import statistics. Round-trip CSV export→import verified working perfectly with data integrity preserved (4 players, 2 teams, 2 sessions). CSV parser is resilient and handles malformed/empty files gracefully by importing empty data rather than throwing errors. All core functionality working as expected."
 
+  - task: "Normalized Scoring System for Leaderboard Fairness"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Implemented normalized scoring system in calculate_normalized_scores() function and updated player/team leaderboard endpoints to use normalized scores (0-1 range per game) for fair comparison across different game types"
+        - working: true
+          agent: "testing"
+          comment: "✅ NORMALIZED SCORING SYSTEM TESTED SUCCESSFULLY - 33/34 tests passed (97.1% success rate). Key findings: ✅ Normalized scoring working correctly with scores in 0-1 range per game, ✅ High-scoring games (Fishbowl 300-1000) do not dominate low-scoring games (Word Puzzle 3-10), ✅ Players ranked fairly across different game types, ✅ Both individual and team games use normalized scoring, ✅ Game-specific filtering works with normalized scores, ✅ Average scores properly normalized (decimal values ≤1.0). CRITICAL FIX: Updated LeaderboardEntry model total_score from int to float to support normalized scores. The system prevents games like fishbowl from unfairly dominating overall leaderboard statistics as intended."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
