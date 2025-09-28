@@ -198,7 +198,7 @@ export default function GamesHistoryScreen() {
                   </View>
                   <View style={styles.gameActions}>
                     <View style={styles.gameIcon}>
-                      <Ionicons name="game-controller" size={24} color="#007AFF" />
+                      <Ionicons name="grid-outline" size={24} color="#007AFF" />
                     </View>
                     <TouchableOpacity
                       style={styles.deleteGameButton}
