@@ -264,7 +264,7 @@ export default function GamesHistoryScreen() {
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Ionicons name="game-controller" size={80} color="#ccc" />
+            <Ionicons name="grid-outline" size={80} color="#ccc" />
             <Text style={styles.emptyTitle}>No Games Recorded</Text>
             <Text style={styles.emptySubtitle}>
               Start recording games to see your group's game history here!
