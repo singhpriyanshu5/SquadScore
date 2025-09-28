@@ -757,32 +757,40 @@ async def get_group_game_sessions_with_normalized(group_id: str):
         }
         
         # Add normalized player scores
-        if normalization:
-            for player_score in session.get("player_scores", []):
-                raw_score = player_score["score"]
-                normalized_score = (raw_score - normalization["min"]) / normalization["range"]
-                enhanced_session["player_scores"].append({
-                    "player_id": player_score["player_id"],
-                    "player_name": player_score["player_name"],
-                    "score": raw_score,  # Raw score
-                    "normalized_score": round(normalized_score, 3)  # Normalized score
-                })
+        for player_score in session.get("player_scores", []):
+            raw_score = player_score["score"]
             
-            # Add normalized team scores
-            for team_score in session.get("team_scores", []):
-                raw_score = team_score["score"]
+            if normalization and normalization["range"] > 0:
                 normalized_score = (raw_score - normalization["min"]) / normalization["range"]
-                enhanced_session["team_scores"].append({
-                    "team_id": team_score["team_id"],
-                    "team_name": team_score["team_name"],
-                    "score": raw_score,  # Raw score
-                    "normalized_score": round(normalized_score, 3),  # Normalized score
-                    "player_ids": team_score.get("player_ids", [])
-                })
-        else:
-            # If no normalization available, keep original scores
-            enhanced_session["player_scores"] = session.get("player_scores", [])
-            enhanced_session["team_scores"] = session.get("team_scores", [])
+            else:
+                # Handle edge cases: if only one unique score exists for this game, normalized = 0.5
+                # This ensures fair treatment when everyone has the same score
+                normalized_score = 0.5
+            
+            enhanced_session["player_scores"].append({
+                "player_id": player_score["player_id"],
+                "player_name": player_score["player_name"],
+                "score": raw_score,  # Raw score
+                "normalized_score": round(max(0.0, min(1.0, normalized_score)), 3)  # Ensure 0-1 range
+            })
+        
+        # Add normalized team scores
+        for team_score in session.get("team_scores", []):
+            raw_score = team_score["score"]
+            
+            if normalization and normalization["range"] > 0:
+                normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+            else:
+                # Handle edge cases: if only one unique score exists for this game, normalized = 0.5
+                normalized_score = 0.5
+            
+            enhanced_session["team_scores"].append({
+                "team_id": team_score["team_id"],
+                "team_name": team_score["team_name"],
+                "score": raw_score,  # Raw score
+                "normalized_score": round(max(0.0, min(1.0, normalized_score)), 3),  # Ensure 0-1 range
+                "player_ids": team_score.get("player_ids", [])
+            })
         
         enhanced_sessions.append(enhanced_session)
     
