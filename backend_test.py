@@ -19,7 +19,7 @@ load_dotenv('/app/frontend/.env')
 BACKEND_URL = os.getenv('EXPO_PUBLIC_BACKEND_URL', 'https://scoreleader.preview.emergentagent.com')
 BASE_URL = f"{BACKEND_URL}/api"
 
-class BoardGameAPITester:
+class NormalizedScoringTester:
     def __init__(self):
         self.base_url = BASE_URL
         self.session = requests.Session()
