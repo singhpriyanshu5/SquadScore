@@ -110,8 +110,8 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Board Game Tracker</Text>
-          <Text style={styles.subtitle}>Track scores with friends</Text>
+          <Text style={styles.title}>SquadScore</Text>
+          <Text style={styles.subtitle}>Track game scores with your squad</Text>
         </View>
 
         {/* Action Buttons */}
