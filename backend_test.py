@@ -621,6 +621,10 @@ class NormalizedScoringTester:
         test_results.append(self.test_normalized_player_leaderboard())
         test_results.append(self.test_normalized_team_leaderboard())
         test_results.append(self.test_game_specific_leaderboards())
+        test_results.append(self.test_players_normalized_endpoint())
+        test_results.append(self.test_teams_normalized_endpoint())
+        test_results.append(self.test_group_stats_consistency())
+        test_results.append(self.test_score_consistency_verification())
         test_results.append(self.test_normalization_verification())
         
         # Print summary
