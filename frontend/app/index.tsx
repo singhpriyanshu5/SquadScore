@@ -38,28 +38,54 @@ const SwipeableGroupCard = ({
   const translateX = new Animated.Value(0);
 
   const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (evt, gestureState) => {
-      return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20;
+      // Only respond to horizontal swipes that are significant enough
+      const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+      const isSignificantMovement = Math.abs(gestureState.dx) > 10;
+      const isLeftSwipe = gestureState.dx < 0;
+      
+      return isHorizontalSwipe && isSignificantMovement && isLeftSwipe;
+    },
+    onPanResponderGrant: () => {
+      // Reset any existing animation
+      translateX.setOffset(translateX._value);
+      translateX.setValue(0);
     },
     onPanResponderMove: (evt, gestureState) => {
-      if (gestureState.dx < 0) { // Only allow left swipe
+      // Only allow left swipe and limit the distance
+      if (gestureState.dx < 0 && gestureState.dx >= -100) {
         translateX.setValue(gestureState.dx);
       }
     },
     onPanResponderRelease: (evt, gestureState) => {
-      if (gestureState.dx < -100) {
-        // Show remove button
+      translateX.flattenOffset();
+      
+      // If swiped far enough to the left, show remove button
+      if (gestureState.dx < -60) {
         Animated.spring(translateX, {
           toValue: -80,
           useNativeDriver: true,
+          tension: 100,
+          friction: 8,
         }).start();
       } else {
-        // Reset position
+        // Reset position if not swiped far enough
         Animated.spring(translateX, {
           toValue: 0,
           useNativeDriver: true,
+          tension: 100,
+          friction: 8,
         }).start();
       }
+    },
+    onPanResponderTerminate: () => {
+      // Reset position if gesture is interrupted
+      translateX.flattenOffset();
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
     },
   });
 
