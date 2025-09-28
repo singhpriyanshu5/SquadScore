@@ -702,6 +702,114 @@ async def get_group_games(group_id: str):
     result = await db.game_sessions.aggregate(pipeline).to_list(1000)
     return [item["_id"] for item in result]
 
+@api_router.get("/groups/{group_id}/players-normalized")
+async def get_players_normalized(group_id: str):
+    """Get players with normalized scores for consistent display"""
+    # Get normalized scores
+    player_stats = await calculate_normalized_scores(group_id)
+    
+    # Get additional player info from database
+    players_db = await db.players.find({"group_id": group_id}).to_list(1000)
+    players_dict = {p["id"]: p for p in players_db}
+    
+    normalized_players = []
+    for player_id, stats in player_stats.items():
+        player_db = players_dict.get(player_id)
+        if player_db:
+            avg_normalized_score = stats["total_normalized_score"] / stats["games_played"] if stats["games_played"] > 0 else 0
+            normalized_players.append({
+                "id": player_id,
+                "player_name": stats["name"],
+                "emoji": player_db.get("emoji", "😀"),
+                "total_score": round(stats["total_normalized_score"], 2),
+                "games_played": stats["games_played"],
+                "average_score": round(avg_normalized_score, 3),
+                "created_date": player_db.get("created_date", "")
+            })
+    
+    # Sort by normalized total score descending
+    normalized_players.sort(key=lambda x: x["total_score"], reverse=True)
+    return normalized_players
+
+@api_router.get("/groups/{group_id}/teams-normalized")
+async def get_teams_normalized(group_id: str):
+    """Get teams with normalized scores for consistent display"""
+    # Calculate normalized scores for teams (similar to team leaderboard)
+    sessions = await db.game_sessions.find({"group_id": group_id}).to_list(1000)
+    
+    # Group sessions by game name and collect all team scores
+    game_scores = {}
+    team_stats = {}
+    
+    for session in sessions:
+        game_name = session["game_name"]
+        if game_name not in game_scores:
+            game_scores[game_name] = []
+        
+        # Collect all team scores for this game
+        for team_score in session.get("team_scores", []):
+            game_scores[game_name].append(team_score["score"])
+    
+    # Calculate min/max for each game for normalization
+    game_normalization = {}
+    for game_name, scores in game_scores.items():
+        if len(scores) > 0:
+            min_score = min(scores)
+            max_score = max(scores)
+            game_normalization[game_name] = {
+                "min": min_score,
+                "max": max_score,
+                "range": max_score - min_score if max_score != min_score else 1
+            }
+    
+    # Calculate normalized scores for teams
+    for session in sessions:
+        game_name = session["game_name"]
+        normalization = game_normalization.get(game_name)
+        
+        if not normalization:
+            continue
+            
+        for team_score in session.get("team_scores", []):
+            team_id = team_score["team_id"]
+            raw_score = team_score["score"]
+            
+            # Normalize score to 0-1 range
+            normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+            
+            if team_id not in team_stats:
+                team_stats[team_id] = {
+                    "name": team_score["team_name"],
+                    "total_normalized_score": 0,
+                    "games_played": 0
+                }
+            
+            team_stats[team_id]["total_normalized_score"] += normalized_score
+            team_stats[team_id]["games_played"] += 1
+    
+    # Get additional team info from database
+    teams_db = await db.teams.find({"group_id": group_id}).to_list(1000)
+    teams_dict = {t["id"]: t for t in teams_db}
+    
+    normalized_teams = []
+    for team_id, stats in team_stats.items():
+        team_db = teams_dict.get(team_id)
+        if team_db:
+            avg_normalized_score = stats["total_normalized_score"] / stats["games_played"] if stats["games_played"] > 0 else 0
+            normalized_teams.append({
+                "id": team_id,
+                "team_name": stats["name"],
+                "player_ids": team_db.get("player_ids", []),
+                "total_score": round(stats["total_normalized_score"], 2),
+                "games_played": stats["games_played"],
+                "average_score": round(avg_normalized_score, 3),
+                "created_date": team_db.get("created_date", "")
+            })
+    
+    # Sort by normalized total score descending
+    normalized_teams.sort(key=lambda x: x["total_score"], reverse=True)
+    return normalized_teams
+
 from fastapi.responses import Response
 
 def convert_to_csv(data):
