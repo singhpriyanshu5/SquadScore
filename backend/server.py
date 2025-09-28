@@ -547,99 +547,28 @@ async def get_player_leaderboard(
     year: Optional[int] = None,
     month: Optional[int] = None
 ):
-    """Get player leaderboard for a group with optional filters"""
-    if game_name or year or month:
-        # Get filtered game sessions first
-        session_filter = {"group_id": group_id}
-        if game_name:
-            session_filter["game_name"] = {"$regex": game_name, "$options": "i"}
-        if year or month:
-            date_filter = {}
-            if year:
-                if month:
-                    # Specific month and year
-                    from datetime import datetime
-                    start_date = datetime(year, month, 1)
-                    if month == 12:
-                        end_date = datetime(year + 1, 1, 1)
-                    else:
-                        end_date = datetime(year, month + 1, 1)
-                    date_filter = {"$gte": start_date, "$lt": end_date}
-                else:
-                    # Entire year
-                    from datetime import datetime
-                    start_date = datetime(year, 1, 1)
-                    end_date = datetime(year + 1, 1, 1)
-                    date_filter = {"$gte": start_date, "$lt": end_date}
-            session_filter["game_date"] = date_filter
-
-        # Get sessions matching filters
-        sessions = await db.game_sessions.find(session_filter).to_list(1000)
-        
-        # Calculate filtered scores
-        player_stats = {}
-        for session in sessions:
-            # Process individual player scores
-            for player_score in session.get("player_scores", []):
-                player_id = player_score["player_id"]
-                if player_id not in player_stats:
-                    player_stats[player_id] = {
-                        "name": player_score["player_name"],
-                        "total_score": 0,
-                        "games_played": 0
-                    }
-                player_stats[player_id]["total_score"] += player_score["score"]
-                player_stats[player_id]["games_played"] += 1
-            
-            # Process team scores (distributed to players)
-            for team_score in session.get("team_scores", []):
-                if team_score.get("player_ids"):
-                    score_per_player = team_score["score"] // len(team_score["player_ids"])
-                    for player_id in team_score["player_ids"]:
-                        if player_id not in player_stats:
-                            # Get player name
-                            player = await db.players.find_one({"id": player_id})
-                            player_name = player["player_name"] if player else "Unknown"
-                            player_stats[player_id] = {
-                                "name": player_name,
-                                "total_score": 0,
-                                "games_played": 0
-                            }
-                        player_stats[player_id]["total_score"] += score_per_player
-                        player_stats[player_id]["games_played"] += 1
-        
-        # Convert to leaderboard format
-        leaderboard = []
-        for player_id, stats in player_stats.items():
-            avg_score = stats["total_score"] / stats["games_played"] if stats["games_played"] > 0 else 0
-            leaderboard.append(LeaderboardEntry(
-                id=player_id,
-                name=stats["name"],
-                total_score=stats["total_score"],
-                games_played=stats["games_played"],
-                average_score=round(avg_score, 2)
-            ))
-        
-        # Sort by total score
-        leaderboard.sort(key=lambda x: x.total_score, reverse=True)
-        return leaderboard
+    """Get player leaderboard for a group with optional filters using normalized scores"""
+    # Use normalized scoring for fair comparison across different games
+    player_stats = await calculate_normalized_scores(group_id, game_name, year, month)
     
-    else:
-        # Original unfiltered logic
-        players = await db.players.find({"group_id": group_id}).sort("total_score", -1).to_list(1000)
+    # Convert to leaderboard format
+    leaderboard = []
+    for player_id, stats in player_stats.items():
+        # Use normalized score for leaderboard ranking, but show raw scores for display
+        avg_normalized_score = stats["total_normalized_score"] / stats["games_played"] if stats["games_played"] > 0 else 0
+        avg_raw_score = stats["total_raw_score"] / stats["games_played"] if stats["games_played"] > 0 else 0
         
-        leaderboard = []
-        for player in players:
-            avg_score = player["total_score"] / player["games_played"] if player["games_played"] > 0 else 0
-            leaderboard.append(LeaderboardEntry(
-                id=player["id"],
-                name=player["player_name"],
-                total_score=player["total_score"],
-                games_played=player["games_played"],
-                average_score=round(avg_score, 2)
-            ))
-        
-        return leaderboard
+        leaderboard.append(LeaderboardEntry(
+            id=player_id,
+            name=stats["name"],
+            total_score=round(stats["total_normalized_score"], 2),  # Use normalized score for ranking
+            games_played=stats["games_played"],
+            average_score=round(avg_normalized_score, 3)  # Show normalized average (3 decimals for precision)
+        ))
+    
+    # Sort by normalized total score
+    leaderboard.sort(key=lambda x: x.total_score, reverse=True)
+    return leaderboard
 
 @api_router.get("/groups/{group_id}/leaderboard/teams", response_model=List[LeaderboardEntry])
 async def get_team_leaderboard(group_id: str):
