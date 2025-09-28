@@ -268,15 +268,27 @@ frontend:
           agent: "testing"
           comment: "✅ NORMALIZED ENDPOINTS TESTING COMPLETED - Successfully tested the NEW normalized player and team endpoints with 53/54 tests passing (98.1% success rate). CRITICAL FINDINGS: ✅ Players Normalized Endpoint (/api/groups/{group_id}/players-normalized) returns players with normalized total_score and average_score matching leaderboard values, ✅ Teams Normalized Endpoint (/api/groups/{group_id}/teams-normalized) returns teams with normalized scores consistent with team leaderboard, ✅ Group Stats Consistency verified - top_player shows normalized score matching leaderboard #1 player, ✅ PERFECT Score Consistency - all endpoints return identical normalized scores ensuring canonical scoring across the entire app, ✅ All required fields present (emoji, name, games_played, player_ids, team_name), ✅ Proper sorting by total_score descending, ✅ No raw database scores detected in any API responses. The system successfully provides consistent normalized scoring across all player/team management screens and leaderboards as intended."
 
+  - task: "Enhanced CSV Download with Raw and Normalized Scores"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ ENHANCED CSV DOWNLOAD FUNCTIONALITY TESTED SUCCESSFULLY - All 30/30 tests passed (100% success rate). CRITICAL VERIFICATION: ✅ CSV download endpoint (/api/groups/{group_id}/download-csv) working perfectly with proper headers (text/csv, attachment), ✅ CSV contains both raw and normalized scores for players and teams as required, ✅ Headers include all required score types: 'Raw Total Score', 'Raw Average Score', 'Normalized Total Score', 'Normalized Average Score', ✅ Players section includes: Player Name, Emoji, Raw Total Score, Games Played, Raw Average Score, Normalized Total Score, Normalized Average Score, Joined Date, ✅ Teams section includes: Team Name, Players, Raw Total Score, Games Played, Raw Average Score, Normalized Total Score, Normalized Average Score, Created Date, ✅ Game sessions preserve original raw score data (high scores >800, low scores <10, team scores), ✅ Data accuracy verified - CSV scores match leaderboard data exactly, ✅ Complete transparency with both scoring systems for comprehensive data analysis. The enhanced CSV export provides users with complete backup/analysis capabilities with both raw (actual entered) and normalized (fair comparison) scores as requested."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 3
+  test_sequence: 4
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Normalized Player and Team Endpoints Testing"
+    - "Enhanced CSV Download with Raw and Normalized Scores"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -296,3 +308,5 @@ agent_communication:
       message: "✅ NORMALIZED SCORING SYSTEM TESTING COMPLETED - Successfully tested the NEW normalized scoring system for leaderboard fairness with 33/34 tests passing (97.1% success rate). CRITICAL FINDINGS: ✅ Normalized scoring prevents high-scoring games (Fishbowl 300-1000) from dominating low-scoring games (Word Puzzle 3-10), ✅ All scores properly normalized to 0-1 range per game ensuring fair competition, ✅ Both player and team leaderboards use normalized scoring, ✅ Game-specific filtering works correctly, ✅ Average scores properly displayed as decimals ≤1.0. IMPORTANT FIX APPLIED: Updated LeaderboardEntry model total_score from int to float to support normalized decimal scores. The system successfully ensures leaderboard fairness across different game types as intended."
     - agent: "testing"
       message: "✅ NORMALIZED ENDPOINTS CONSISTENCY TESTING COMPLETED - Successfully tested the NEW normalized player and team endpoints for consistent scoring across the app with 53/54 tests passing (98.1% success rate). CRITICAL VERIFICATION: ✅ /api/groups/{group_id}/players-normalized endpoint returns players with normalized scores matching leaderboard exactly, ✅ /api/groups/{group_id}/teams-normalized endpoint returns teams with normalized scores consistent with team leaderboard, ✅ /api/groups/{group_id}/stats endpoint top_player uses normalized scores matching leaderboard #1 player, ✅ PERFECT score consistency verified between all normalized endpoints and leaderboards - no discrepancies found, ✅ All required fields present (emoji, name, games_played, player_ids, team_name), ✅ Proper sorting and data types, ✅ No raw database scores detected anywhere. The entire app now shows canonical normalized scores consistently across player/team management screens and leaderboards as intended."
+    - agent: "testing"
+      message: "✅ ENHANCED CSV DOWNLOAD FUNCTIONALITY TESTING COMPLETED - Successfully tested the ENHANCED CSV download functionality with both raw and normalized scores with 30/30 tests passing (100% success rate). CRITICAL VERIFICATION: ✅ CSV download endpoint (/api/groups/{group_id}/download-csv) working perfectly with proper headers and content structure, ✅ CSV contains both raw and normalized scores for players and teams as required, ✅ Headers include all required score types: 'Raw Total Score', 'Raw Average Score', 'Normalized Total Score', 'Normalized Average Score', ✅ Players section complete with all required fields including both score systems, ✅ Teams section complete with all required fields including both score systems, ✅ Game sessions preserve original raw score data for complete transparency, ✅ Data accuracy verified - CSV scores match leaderboard data exactly, ✅ Complete backup/analysis capabilities with both raw (actual entered) and normalized (fair comparison) scores. The enhanced CSV export provides users with comprehensive data transparency and analysis capabilities as requested."
