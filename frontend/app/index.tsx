@@ -134,9 +134,22 @@ export default function HomeScreen() {
           <View style={styles.recentContainer}>
             <View style={styles.recentHeader}>
               <Text style={styles.sectionTitle}>Recent Groups</Text>
-              <TouchableOpacity onPress={clearRecentGroups}>
-                <Text style={styles.clearText}>Clear</Text>
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity 
+                  onPress={handleRefresh}
+                  style={styles.refreshButton}
+                  disabled={refreshing}
+                >
+                  <Ionicons 
+                    name="refresh" 
+                    size={20} 
+                    color={refreshing ? "#999" : "#007AFF"} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={clearRecentGroups}>
+                  <Text style={styles.clearText}>Clear</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {recentGroups.map((group) => (
