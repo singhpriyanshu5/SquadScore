@@ -686,7 +686,9 @@ async def get_group_stats(group_id: str):
             name=top_stats["name"],
             total_score=round(top_stats["total_normalized_score"], 2),
             games_played=top_stats["games_played"],
-            average_score=round(avg_normalized_score, 3)
+            average_score=round(avg_normalized_score, 3),
+            raw_total_score=top_stats["total_raw_score"],
+            raw_average_score=round(top_stats["total_raw_score"] / top_stats["games_played"] if top_stats["games_played"] > 0 else 0, 1)
         )
     
     return GroupStats(
