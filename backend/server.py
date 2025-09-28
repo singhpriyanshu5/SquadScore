@@ -710,6 +710,84 @@ async def get_group_games(group_id: str):
     result = await db.game_sessions.aggregate(pipeline).to_list(1000)
     return [item["_id"] for item in result]
 
+@api_router.get("/groups/{group_id}/game-sessions-with-normalized")
+async def get_group_game_sessions_with_normalized(group_id: str):
+    """Get game sessions with both raw and normalized scores"""
+    # Get all sessions
+    sessions = await db.game_sessions.find({"group_id": group_id}).sort("game_date", -1).to_list(1000)
+    
+    # Calculate normalization parameters per game
+    game_scores = {}
+    for session in sessions:
+        game_name = session["game_name"]
+        if game_name not in game_scores:
+            game_scores[game_name] = []
+        
+        # Collect all scores for this game
+        for player_score in session.get("player_scores", []):
+            game_scores[game_name].append(player_score["score"])
+        for team_score in session.get("team_scores", []):
+            game_scores[game_name].append(team_score["score"])
+    
+    # Calculate normalization parameters
+    game_normalization = {}
+    for game_name, scores in game_scores.items():
+        if len(scores) > 0:
+            min_score = min(scores)
+            max_score = max(scores)
+            game_normalization[game_name] = {
+                "min": min_score,
+                "max": max_score,
+                "range": max_score - min_score if max_score != min_score else 1
+            }
+    
+    # Add normalized scores to sessions
+    enhanced_sessions = []
+    for session in sessions:
+        game_name = session["game_name"]
+        normalization = game_normalization.get(game_name)
+        
+        enhanced_session = {
+            "id": session["id"],
+            "game_name": session["game_name"],
+            "game_date": session["game_date"].isoformat() if isinstance(session["game_date"], datetime) else session["game_date"],
+            "created_date": session["created_date"].isoformat() if isinstance(session["created_date"], datetime) else session["created_date"],
+            "player_scores": [],
+            "team_scores": []
+        }
+        
+        # Add normalized player scores
+        if normalization:
+            for player_score in session.get("player_scores", []):
+                raw_score = player_score["score"]
+                normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+                enhanced_session["player_scores"].append({
+                    "player_id": player_score["player_id"],
+                    "player_name": player_score["player_name"],
+                    "score": raw_score,  # Raw score
+                    "normalized_score": round(normalized_score, 3)  # Normalized score
+                })
+            
+            # Add normalized team scores
+            for team_score in session.get("team_scores", []):
+                raw_score = team_score["score"]
+                normalized_score = (raw_score - normalization["min"]) / normalization["range"]
+                enhanced_session["team_scores"].append({
+                    "team_id": team_score["team_id"],
+                    "team_name": team_score["team_name"],
+                    "score": raw_score,  # Raw score
+                    "normalized_score": round(normalized_score, 3),  # Normalized score
+                    "player_ids": team_score.get("player_ids", [])
+                })
+        else:
+            # If no normalization available, keep original scores
+            enhanced_session["player_scores"] = session.get("player_scores", [])
+            enhanced_session["team_scores"] = session.get("team_scores", [])
+        
+        enhanced_sessions.append(enhanced_session)
+    
+    return enhanced_sessions
+
 @api_router.get("/groups/{group_id}/players-normalized")
 async def get_players_normalized(group_id: str):
     """Get players with normalized scores for consistent display"""
