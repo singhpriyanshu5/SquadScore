@@ -775,4 +775,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
   },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
+  },
 });
