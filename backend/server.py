@@ -1016,7 +1016,7 @@ async def download_group_csv(group_id: str):
                 "id": player["id"],
                 "player_name": player["player_name"],
                 "emoji": player.get("emoji", "😀"),
-                "total_score": player["total_score"],
+                "total_score": player["total_score"],  # Raw total score
                 "games_played": player["games_played"],
                 "created_date": player["created_date"].isoformat() if isinstance(player["created_date"], datetime) else player["created_date"],
                 "normalized_total_score": round(player_normalized_stats.get(player["id"], {}).get("total_normalized_score", 0), 2),
