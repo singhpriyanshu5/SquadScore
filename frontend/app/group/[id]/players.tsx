@@ -642,6 +642,11 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     marginBottom: 4,
   },
+  statSubValue: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 2,
+  },
   statLabel: {
     fontSize: 12,
     color: '#666',
