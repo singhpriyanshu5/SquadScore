@@ -1029,7 +1029,7 @@ async def download_group_csv(group_id: str):
                 "player_ids": team["player_ids"],
                 "total_score": team["total_score"],
                 "games_played": team["games_played"],
-                "created_date": team["created_date"].isoformat() if isinstance(team["created_date"], datetime) else team["created_date"]
+                "created_date": team["created_date"].isoformat() if isinstance(team["created_date"], datetime) else team["created_date"],
                 "normalized_total_score": round(team_normalized_stats.get(team["id"], {}).get("total_normalized_score", 0), 2),
                 "normalized_average_score": round(team_normalized_stats.get(team["id"], {}).get("total_normalized_score", 0) / team["games_played"] if team["games_played"] > 0 else 0, 3),
             }
