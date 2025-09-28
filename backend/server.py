@@ -732,6 +732,8 @@ async def get_players_normalized(group_id: str):
                 "total_score": round(stats["total_normalized_score"], 2),
                 "games_played": stats["games_played"],
                 "average_score": round(avg_normalized_score, 3),
+                "raw_total_score": stats["total_raw_score"],
+                "raw_average_score": round(stats["total_raw_score"] / stats["games_played"] if stats["games_played"] > 0 else 0, 1),
                 "created_date": player_db.get("created_date", "")
             })
     
