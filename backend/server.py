@@ -799,17 +799,20 @@ async def get_group_game_sessions_with_normalized(group_id: str):
 @api_router.get("/groups/{group_id}/players-normalized")
 async def get_players_normalized(group_id: str):
     """Get players with normalized scores for consistent display"""
-    # Get normalized scores
+    # Get all players from database first
+    players_db = await db.players.find({"group_id": group_id}).to_list(1000)
+    
+    # Get normalized scores for players who have played games
     player_stats = await calculate_normalized_scores(group_id)
     
-    # Get additional player info from database
-    players_db = await db.players.find({"group_id": group_id}).to_list(1000)
-    players_dict = {p["id"]: p for p in players_db}
-    
     normalized_players = []
-    for player_id, stats in player_stats.items():
-        player_db = players_dict.get(player_id)
-        if player_db:
+    for player_db in players_db:
+        player_id = player_db["id"]
+        
+        # Check if player has game stats
+        if player_id in player_stats:
+            # Player has played games - use calculated stats
+            stats = player_stats[player_id]
             avg_normalized_score = stats["total_normalized_score"] / stats["games_played"] if stats["games_played"] > 0 else 0
             normalized_players.append({
                 "id": player_id,
@@ -820,11 +823,24 @@ async def get_players_normalized(group_id: str):
                 "average_score": round(avg_normalized_score, 3),
                 "raw_total_score": stats["total_raw_score"],
                 "raw_average_score": round(stats["total_raw_score"] / stats["games_played"] if stats["games_played"] > 0 else 0, 1),
-                "created_date": player_db.get("created_date", "")
+                "created_date": player_db.get("created_date", "").isoformat() if hasattr(player_db.get("created_date", ""), 'isoformat') else str(player_db.get("created_date", ""))
+            })
+        else:
+            # Player hasn't played any games yet - use zero scores
+            normalized_players.append({
+                "id": player_id,
+                "player_name": player_db["player_name"],
+                "emoji": player_db.get("emoji", "😀"),
+                "total_score": 0.0,  # No normalized score yet
+                "games_played": 0,
+                "average_score": 0.0,  # No average yet
+                "raw_total_score": 0,  # No raw score yet
+                "raw_average_score": 0.0,  # No raw average yet
+                "created_date": player_db.get("created_date", "").isoformat() if hasattr(player_db.get("created_date", ""), 'isoformat') else str(player_db.get("created_date", ""))
             })
     
-    # Sort by normalized total score descending
-    normalized_players.sort(key=lambda x: x["total_score"], reverse=True)
+    # Sort by normalized total score descending (players with games first, then by creation date)
+    normalized_players.sort(key=lambda x: (x["total_score"], x["games_played"]), reverse=True)
     return normalized_players
 
 @api_router.get("/groups/{group_id}/teams-normalized")
