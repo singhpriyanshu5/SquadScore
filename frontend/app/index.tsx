@@ -29,11 +29,13 @@ interface Group {
 const SwipeableGroupCard = ({ 
   group, 
   onPress, 
-  onRemove 
+  onRemove,
+  onEdit
 }: { 
   group: Group; 
   onPress: () => void; 
-  onRemove: () => void; 
+  onRemove: () => void;
+  onEdit: () => void;
 }) => {
   const translateX = new Animated.Value(0);
 
