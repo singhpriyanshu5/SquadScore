@@ -196,61 +196,7 @@ export default function HomeScreen() {
     );
   };
 
-  const handleEditGroup = async (group: Group) => {
-    Alert.prompt(
-      'Edit Group Name',
-      `Current name: ${group.group_name}\n\nEnter new group name:`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Save',
-          onPress: async (newName) => {
-            if (!newName || newName.trim() === '') {
-              Alert.alert('Error', 'Group name cannot be empty');
-              return;
-            }
-
-            if (newName.trim() === group.group_name) {
-              return; // No change needed
-            }
-
-            try {
-              const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${group.id}/name`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  group_name: newName.trim()
-                }),
-              });
-
-              if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to update group name');
-              }
-
-              // Update the group in recent groups list
-              const updatedGroups = recentGroups.map(g => 
-                g.id === group.id 
-                  ? { ...g, group_name: newName.trim() }
-                  : g
-              );
-              setRecentGroups(updatedGroups);
-              await AsyncStorage.setItem('recent_groups', JSON.stringify(updatedGroups));
-
-              Alert.alert('Success', 'Group name updated successfully!');
-            } catch (error) {
-              console.error('Error updating group name:', error);
-              Alert.alert('Error', 'Failed to update group name. Please try again.');
-            }
-          }
-        }
-      ],
-      'plain-text',
-      group.group_name
-    );
-  };
+  // Edit group functionality moved to group details page
 
   const handleGroupPress = (groupId: string) => {
     router.push(`/group/${groupId}`);
