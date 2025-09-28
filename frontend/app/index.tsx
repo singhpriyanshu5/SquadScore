@@ -272,6 +272,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  refreshButton: {
+    padding: 4,
+  },
   clearText: {
     fontSize: 16,
     color: '#007AFF',
