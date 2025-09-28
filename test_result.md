@@ -122,9 +122,9 @@ backend:
 
   - task: "Player Management APIs" 
     implemented: true
-    working: true
+    working: false
     file: "server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -134,6 +134,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ All player management APIs working correctly. Tested: added 4 players (Alice Johnson, Bob Smith, Charlie Brown, Diana Prince), retrieved all players in group, duplicate name rejection (400), invalid group ID handling (404). Player creation and retrieval fully functional."
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL BUG FOUND: /api/groups/{group_id}/players-normalized endpoint only returns players who have participated in game sessions. Newly created players (without game history) are not included in the response. Root cause: calculate_normalized_scores() function only processes players from game sessions, so player_stats remains empty for new players. Standard /api/players endpoint works correctly (returns 4 players), but normalized endpoint returns 0 players for the same group. This breaks frontend functionality that relies on the normalized endpoint to display players."
 
   - task: "Team Management APIs"
     implemented: true  
