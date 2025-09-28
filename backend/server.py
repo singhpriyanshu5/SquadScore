@@ -665,21 +665,22 @@ async def get_group_stats(group_id: str):
     most_played_result = await db.game_sessions.aggregate(pipeline).to_list(1)
     most_played_game = most_played_result[0]["_id"] if most_played_result else None
     
-    # Get top player
-    top_player_doc = await db.players.find_one(
-        {"group_id": group_id}, 
-        sort=[("total_score", -1)]
-    )
+    # Get top player using normalized scores
+    player_stats = await calculate_normalized_scores(group_id)
     
     top_player = None
-    if top_player_doc:
-        avg_score = top_player_doc["total_score"] / top_player_doc["games_played"] if top_player_doc["games_played"] > 0 else 0
+    if player_stats:
+        # Find the player with highest normalized total score
+        top_player_id = max(player_stats.keys(), key=lambda pid: player_stats[pid]["total_normalized_score"])
+        top_stats = player_stats[top_player_id]
+        
+        avg_normalized_score = top_stats["total_normalized_score"] / top_stats["games_played"] if top_stats["games_played"] > 0 else 0
         top_player = LeaderboardEntry(
-            id=top_player_doc["id"],
-            name=top_player_doc["player_name"],
-            total_score=top_player_doc["total_score"],
-            games_played=top_player_doc["games_played"],
-            average_score=round(avg_score, 2)
+            id=top_player_id,
+            name=top_stats["name"],
+            total_score=round(top_stats["total_normalized_score"], 2),
+            games_played=top_stats["games_played"],
+            average_score=round(avg_normalized_score, 3)
         )
     
     return GroupStats(
