@@ -56,7 +56,7 @@ export default function GamesHistoryScreen() {
 
   const loadGameSessions = async () => {
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/game-sessions`);
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/game-sessions-with-normalized`);
       if (!response.ok) {
         throw new Error('Failed to load game sessions');
       }
