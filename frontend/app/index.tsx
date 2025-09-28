@@ -100,18 +100,7 @@ const SwipeableGroupCard = ({
 
   return (
     <View style={styles.swipeableContainer}>
-      <View style={styles.actionButtonsContainer}>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => {
-            resetPosition();
-            onEdit();
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="pencil" size={18} color="white" />
-          <Text style={styles.actionButtonText}>Edit</Text>
-        </TouchableOpacity>
+      <View style={styles.removeButtonContainer}>
         <TouchableOpacity
           style={styles.removeButton}
           onPress={() => {
@@ -120,8 +109,8 @@ const SwipeableGroupCard = ({
           }}
           activeOpacity={0.8}
         >
-          <Ionicons name="trash" size={18} color="white" />
-          <Text style={styles.actionButtonText}>Remove</Text>
+          <Ionicons name="trash" size={20} color="white" />
+          <Text style={styles.removeButtonText}>Remove</Text>
         </TouchableOpacity>
       </View>
       
