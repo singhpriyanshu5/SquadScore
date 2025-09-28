@@ -256,7 +256,10 @@ export default function GamesHistoryScreen() {
                       {session.team_scores.map((team, index) => (
                         <View key={index} style={styles.scoreItem}>
                           <Text style={styles.scoreName}>{team.team_name}</Text>
-                          <Text style={styles.scoreValue}>{team.score}</Text>
+                          <View style={styles.scoreValues}>
+                            <Text style={styles.scoreValue}>{team.normalized_score || 'N/A'}</Text>
+                            <Text style={styles.scoreSubValue}>({team.score})</Text>
+                          </View>
                         </View>
                       ))}
                     </View>
