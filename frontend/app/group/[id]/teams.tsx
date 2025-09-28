@@ -70,7 +70,7 @@ export default function TeamsScreen() {
   };
 
   const loadTeams = async () => {
-    const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/teams`);
+    const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/teams-normalized`);
     if (!response.ok) {
       throw new Error('Failed to load teams');
     }
