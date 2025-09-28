@@ -310,6 +310,13 @@ export default function LeaderboardScreen() {
               {activeTab === 'players' ? 'Player Rankings' : 'Team Rankings'}
             </Text>
             
+            <View style={styles.infoContainer}>
+              <Ionicons name="information-circle-outline" size={16} color="#666" />
+              <Text style={styles.infoText}>
+                Scores are normalized (0-1) per game to ensure fair rankings across different game types
+              </Text>
+            </View>
+            
             {currentLeaderboard.map((entry, index) => 
               renderLeaderboardEntry(entry, index)
             )}
@@ -767,5 +774,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: 'white',
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
   },
 });

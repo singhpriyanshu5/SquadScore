@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,11 @@ import {
   Alert,
   SafeAreaView,
   ScrollView,
+  RefreshControl,
+  Animated,
+  PanResponder,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -22,16 +25,134 @@ interface Group {
   created_date: string;
 }
 
+// SwipeableGroupCard component
+const SwipeableGroupCard = ({ 
+  group, 
+  onPress, 
+  onRemove
+}: { 
+  group: Group; 
+  onPress: () => void; 
+  onRemove: () => void;
+}) => {
+  const translateX = new Animated.Value(0);
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (evt, gestureState) => {
+      // Only respond to horizontal swipes that are significant enough
+      const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+      const isSignificantMovement = Math.abs(gestureState.dx) > 10;
+      const isLeftSwipe = gestureState.dx < 0;
+      
+      return isHorizontalSwipe && isSignificantMovement && isLeftSwipe;
+    },
+    onPanResponderGrant: () => {
+      // Reset any existing animation
+      translateX.setOffset(translateX._value);
+      translateX.setValue(0);
+    },
+    onPanResponderMove: (evt, gestureState) => {
+      // Only allow left swipe and limit the distance
+      if (gestureState.dx < 0 && gestureState.dx >= -100) {
+        translateX.setValue(gestureState.dx);
+      }
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      translateX.flattenOffset();
+      
+      // If swiped far enough to the left, show remove button
+      if (gestureState.dx < -60) {
+        Animated.spring(translateX, {
+          toValue: -80,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        }).start();
+      } else {
+        // Reset position if not swiped far enough
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        }).start();
+      }
+    },
+    onPanResponderTerminate: () => {
+      // Reset position if gesture is interrupted
+      translateX.flattenOffset();
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    },
+  });
+
+  const resetPosition = () => {
+    Animated.spring(translateX, {
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <View style={styles.swipeableContainer}>
+      <View style={styles.removeButtonContainer}>
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => {
+            resetPosition();
+            onRemove();
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="trash" size={20} color="white" />
+          <Text style={styles.removeButtonText}>Remove</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <Animated.View
+        style={[
+          styles.groupCardContainer,
+          { transform: [{ translateX }] }
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <TouchableOpacity
+          style={styles.groupCard}
+          onPress={onPress}
+          activeOpacity={0.7}
+        >
+          <View style={styles.groupInfo}>
+            <Text style={styles.groupName}>{group.group_name}</Text>
+            <Text style={styles.groupCode}>Code: {group.group_code}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#666" />
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+};
+
 export default function HomeScreen() {
   const [recentGroups, setRecentGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    loadRecentGroups();
-  }, []);
+  // Load groups when screen comes into focus (e.g., after creating a new group)
+  useFocusEffect(
+    useCallback(() => {
+      loadRecentGroups();
+    }, [])
+  );
 
-  const loadRecentGroups = async () => {
+  const loadRecentGroups = async (showRefreshIndicator = false) => {
+    if (showRefreshIndicator) {
+      setRefreshing(true);
+    }
+    
     try {
       const groups = await AsyncStorage.getItem('recent_groups');
       if (groups) {
@@ -41,8 +162,41 @@ export default function HomeScreen() {
       console.error('Error loading recent groups:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const handleRefresh = useCallback(() => {
+    loadRecentGroups(true);
+  }, []);
+
+  const removeGroupFromRecents = async (groupId: string) => {
+    try {
+      const updatedGroups = recentGroups.filter(group => group.id !== groupId);
+      await AsyncStorage.setItem('recent_groups', JSON.stringify(updatedGroups));
+      setRecentGroups(updatedGroups);
+    } catch (error) {
+      console.error('Error removing group from recents:', error);
+      Alert.alert('Error', 'Failed to remove group from recents. Please try again.');
+    }
+  };
+
+  const handleRemoveGroup = (group: Group) => {
+    Alert.alert(
+      'Remove Group',
+      `Remove "${group.group_name}" from your recent groups? You can always rejoin using the group code: ${group.group_code}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => removeGroupFromRecents(group.id)
+        }
+      ]
+    );
+  };
+
+  // Edit group functionality moved to group details page
 
   const handleGroupPress = (groupId: string) => {
     router.push(`/group/${groupId}`);
@@ -87,11 +241,17 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Board Game Tracker</Text>
-          <Text style={styles.subtitle}>Track scores with friends</Text>
+          <Text style={styles.title}>SquadScore</Text>
+          <Text style={styles.subtitle}>Track game scores with your squad</Text>
         </View>
 
         {/* Action Buttons */}
@@ -120,24 +280,31 @@ export default function HomeScreen() {
           <View style={styles.recentContainer}>
             <View style={styles.recentHeader}>
               <Text style={styles.sectionTitle}>Recent Groups</Text>
-              <TouchableOpacity onPress={clearRecentGroups}>
-                <Text style={styles.clearText}>Clear</Text>
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity 
+                  onPress={handleRefresh}
+                  style={styles.refreshButton}
+                  disabled={refreshing}
+                >
+                  <Ionicons 
+                    name="refresh" 
+                    size={20} 
+                    color={refreshing ? "#999" : "#007AFF"} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={clearRecentGroups}>
+                  <Text style={styles.clearText}>Clear</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {recentGroups.map((group) => (
-              <TouchableOpacity
+              <SwipeableGroupCard
                 key={group.id}
-                style={styles.groupCard}
+                group={group}
                 onPress={() => handleGroupPress(group.id)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.groupInfo}>
-                  <Text style={styles.groupName}>{group.group_name}</Text>
-                  <Text style={styles.groupCode}>Code: {group.group_code}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
-              </TouchableOpacity>
+                onRemove={() => handleRemoveGroup(group)}
+              />
             ))}
           </View>
         )}
@@ -239,15 +406,54 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  refreshButton: {
+    padding: 4,
+  },
   clearText: {
     fontSize: 16,
     color: '#007AFF',
+  },
+  swipeableContainer: {
+    marginBottom: 12,
+    position: 'relative',
+  },
+  removeButtonContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  removeButton: {
+    backgroundColor: '#ff4444',
+    width: 80,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  removeButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  groupCardContainer: {
+    width: '100%',
+    zIndex: 2,
   },
   groupCard: {
     backgroundColor: 'white',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
