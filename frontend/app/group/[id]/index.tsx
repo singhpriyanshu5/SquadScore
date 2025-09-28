@@ -198,35 +198,17 @@ export default function GroupDashboardScreen() {
           'Your board game history download has started. The CSV file should appear in your Downloads folder.'
         );
       } else {
-        // For mobile platforms, fetch the data and create a shareable file
-        const response = await fetch(downloadUrl);
-        if (!response.ok) {
-          throw new Error('Failed to fetch CSV data');
-        }
-        
-        const csvData = await response.text();
-        const filename = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
-        const fileUri = documentDirectory + filename;
-        
-        // Write the CSV data to a file
-        await writeAsStringAsync(fileUri, csvData, {
-          encoding: EncodingType.UTF8,
+        // For mobile platforms, use WebBrowser to open the download URL
+        // The browser will handle the download automatically
+        await WebBrowser.openBrowserAsync(downloadUrl, {
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+          controlsColor: '#007AFF',
         });
         
-        // Check if sharing is available and share the file
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'text/csv',
-            dialogTitle: 'Save Board Game History',
-            UTI: 'public.comma-separated-values-text'
-          });
-        } else {
-          Alert.alert(
-            'Download Complete!',
-            `Your board game history has been saved to: ${filename}\n\nYou can find it in your device's Documents folder.`
-          );
-        }
+        Alert.alert(
+          'Download Started!',
+          'Your board game history download has started. The CSV file should appear in your device\'s Files app or Downloads folder.'
+        );
       }
     } catch (error) {
       console.error('Error downloading history:', error);
