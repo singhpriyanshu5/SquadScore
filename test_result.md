@@ -276,7 +276,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Normalized Scoring System Testing"
+    - "Normalized Player and Team Endpoints Testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -294,3 +294,5 @@ agent_communication:
       message: "✅ NEW CSV IMPORT FUNCTIONALITY TESTING COMPLETED - Successfully tested the new /api/groups/{group_id}/import-csv endpoint with 32/34 tests passing (94.1% success rate). Key findings: CSV import accepts file uploads correctly, parses CSV format with all required sections (GROUP INFORMATION, PLAYERS, TEAMS, GAME SESSIONS), correctly replaces existing group data, returns proper import statistics, round-trip CSV export→import preserves data integrity perfectly. CSV parser is resilient and handles edge cases gracefully. The 2 minor test failures were for error handling expectations - the endpoint handles malformed/empty CSV files gracefully by importing empty data rather than throwing errors, which is acceptable behavior. Core CSV import functionality is fully operational and ready for production use."
     - agent: "testing"
       message: "✅ NORMALIZED SCORING SYSTEM TESTING COMPLETED - Successfully tested the NEW normalized scoring system for leaderboard fairness with 33/34 tests passing (97.1% success rate). CRITICAL FINDINGS: ✅ Normalized scoring prevents high-scoring games (Fishbowl 300-1000) from dominating low-scoring games (Word Puzzle 3-10), ✅ All scores properly normalized to 0-1 range per game ensuring fair competition, ✅ Both player and team leaderboards use normalized scoring, ✅ Game-specific filtering works correctly, ✅ Average scores properly displayed as decimals ≤1.0. IMPORTANT FIX APPLIED: Updated LeaderboardEntry model total_score from int to float to support normalized decimal scores. The system successfully ensures leaderboard fairness across different game types as intended."
+    - agent: "testing"
+      message: "✅ NORMALIZED ENDPOINTS CONSISTENCY TESTING COMPLETED - Successfully tested the NEW normalized player and team endpoints for consistent scoring across the app with 53/54 tests passing (98.1% success rate). CRITICAL VERIFICATION: ✅ /api/groups/{group_id}/players-normalized endpoint returns players with normalized scores matching leaderboard exactly, ✅ /api/groups/{group_id}/teams-normalized endpoint returns teams with normalized scores consistent with team leaderboard, ✅ /api/groups/{group_id}/stats endpoint top_player uses normalized scores matching leaderboard #1 player, ✅ PERFECT score consistency verified between all normalized endpoints and leaderboards - no discrepancies found, ✅ All required fields present (emoji, name, games_played, player_ids, team_name), ✅ Proper sorting and data types, ✅ No raw database scores detected anywhere. The entire app now shows canonical normalized scores consistently across player/team management screens and leaderboards as intended."
