@@ -375,6 +375,197 @@ class NormalizedScoringTester:
         
         return True
     
+    def test_players_normalized_endpoint(self):
+        """Test the NEW /api/groups/{group_id}/players-normalized endpoint"""
+        print("\n🎯 Testing Players Normalized Endpoint...")
+        
+        group_id = self.test_data['group']['id']
+        data, status = self.make_request("GET", f"/groups/{group_id}/players-normalized")
+        
+        if not data or status != 200:
+            self.log_test("Players Normalized Endpoint", False, f"Status: {status}")
+            return False
+        
+        self.log_test("Players Normalized Endpoint", True, f"Retrieved {len(data)} players")
+        
+        # Store for consistency testing
+        self.players_normalized = data
+        
+        # Test required fields
+        required_fields = ["id", "player_name", "emoji", "total_score", "games_played", "average_score"]
+        for player in data:
+            missing_fields = [field for field in required_fields if field not in player]
+            if missing_fields:
+                self.log_test(f"Players Normalized - Required Fields ({player.get('player_name', 'Unknown')})", 
+                             False, f"Missing: {missing_fields}")
+            else:
+                self.log_test(f"Players Normalized - Required Fields ({player['player_name']})", True)
+        
+        # Test normalized score ranges
+        for player in data:
+            if player['average_score'] > 1.0:
+                self.log_test(f"Players Normalized - Score Range ({player['player_name']})", 
+                             False, f"Average {player['average_score']} > 1.0")
+            else:
+                self.log_test(f"Players Normalized - Score Range ({player['player_name']})", 
+                             True, f"Average {player['average_score']:.3f} properly normalized")
+        
+        # Test sorting (should be by total_score descending)
+        for i in range(len(data) - 1):
+            if data[i]['total_score'] < data[i + 1]['total_score']:
+                self.log_test("Players Normalized - Sorting", False, "Not sorted by total_score descending")
+                break
+        else:
+            self.log_test("Players Normalized - Sorting", True, "Properly sorted by total_score descending")
+        
+        return True
+    
+    def test_teams_normalized_endpoint(self):
+        """Test the NEW /api/groups/{group_id}/teams-normalized endpoint"""
+        print("\n🏆 Testing Teams Normalized Endpoint...")
+        
+        group_id = self.test_data['group']['id']
+        data, status = self.make_request("GET", f"/groups/{group_id}/teams-normalized")
+        
+        if not data or status != 200:
+            self.log_test("Teams Normalized Endpoint", False, f"Status: {status}")
+            return False
+        
+        self.log_test("Teams Normalized Endpoint", True, f"Retrieved {len(data)} teams")
+        
+        # Store for consistency testing
+        self.teams_normalized = data
+        
+        if len(data) == 0:
+            self.log_test("Teams Normalized - No Data", True, "No teams with scores (expected if no team games)")
+            return True
+        
+        # Test required fields
+        required_fields = ["id", "team_name", "player_ids", "total_score", "games_played", "average_score"]
+        for team in data:
+            missing_fields = [field for field in required_fields if field not in team]
+            if missing_fields:
+                self.log_test(f"Teams Normalized - Required Fields ({team.get('team_name', 'Unknown')})", 
+                             False, f"Missing: {missing_fields}")
+            else:
+                self.log_test(f"Teams Normalized - Required Fields ({team['team_name']})", True)
+        
+        # Test normalized score ranges
+        for team in data:
+            if team['average_score'] > 1.0:
+                self.log_test(f"Teams Normalized - Score Range ({team['team_name']})", 
+                             False, f"Average {team['average_score']} > 1.0")
+            else:
+                self.log_test(f"Teams Normalized - Score Range ({team['team_name']})", 
+                             True, f"Average {team['average_score']:.3f} properly normalized")
+        
+        return True
+    
+    def test_group_stats_consistency(self):
+        """Test /api/groups/{group_id}/stats endpoint for normalized score consistency"""
+        print("\n📊 Testing Group Stats Consistency...")
+        
+        group_id = self.test_data['group']['id']
+        data, status = self.make_request("GET", f"/groups/{group_id}/stats")
+        
+        if not data or status != 200:
+            self.log_test("Group Stats Endpoint", False, f"Status: {status}")
+            return False
+        
+        self.log_test("Group Stats Endpoint", True, "Retrieved group statistics")
+        
+        # Store for consistency testing
+        self.group_stats = data
+        
+        # Test top_player uses normalized scores
+        top_player = data.get('top_player')
+        if not top_player:
+            self.log_test("Group Stats - Top Player", False, "No top player returned")
+            return False
+        
+        if top_player['average_score'] > 1.0:
+            self.log_test("Group Stats - Top Player Normalization", False, 
+                         f"Top player avg {top_player['average_score']} > 1.0")
+        else:
+            self.log_test("Group Stats - Top Player Normalization", True, 
+                         f"Top player {top_player['name']} avg {top_player['average_score']:.3f} normalized")
+        
+        return True
+    
+    def test_score_consistency_verification(self):
+        """Test consistency between normalized endpoints and leaderboards"""
+        print("\n🔍 Testing Score Consistency Between Endpoints...")
+        
+        group_id = self.test_data['group']['id']
+        
+        # Get leaderboard data for comparison
+        player_leaderboard, status = self.make_request("GET", f"/groups/{group_id}/leaderboard/players")
+        if not player_leaderboard or status != 200:
+            self.log_test("Score Consistency - Get Player Leaderboard", False, f"Status: {status}")
+            return False
+        
+        team_leaderboard, status = self.make_request("GET", f"/groups/{group_id}/leaderboard/teams")
+        if status != 200:
+            self.log_test("Score Consistency - Get Team Leaderboard", False, f"Status: {status}")
+            return False
+        
+        # Test 1: Compare players-normalized vs player leaderboard
+        if hasattr(self, 'players_normalized'):
+            players_norm_dict = {p['id']: p for p in self.players_normalized}
+            players_lead_dict = {p['id']: p for p in player_leaderboard}
+            
+            consistency_issues = []
+            for player_id in players_norm_dict:
+                if player_id in players_lead_dict:
+                    norm_player = players_norm_dict[player_id]
+                    lead_player = players_lead_dict[player_id]
+                    
+                    # Compare scores (allow small floating point differences)
+                    if (abs(norm_player['total_score'] - lead_player['total_score']) > 0.01 or
+                        abs(norm_player['average_score'] - lead_player['average_score']) > 0.001):
+                        consistency_issues.append(f"{norm_player['player_name']}: norm({norm_player['total_score']:.3f}) vs lead({lead_player['total_score']:.3f})")
+            
+            if consistency_issues:
+                self.log_test("Score Consistency - Player Scores", False, f"Mismatches: {consistency_issues}")
+            else:
+                self.log_test("Score Consistency - Player Scores", True, "Player scores match between endpoints")
+        
+        # Test 2: Compare teams-normalized vs team leaderboard
+        if hasattr(self, 'teams_normalized') and team_leaderboard:
+            teams_norm_dict = {t['id']: t for t in self.teams_normalized}
+            teams_lead_dict = {t['id']: t for t in team_leaderboard}
+            
+            team_consistency_issues = []
+            for team_id in teams_norm_dict:
+                if team_id in teams_lead_dict:
+                    norm_team = teams_norm_dict[team_id]
+                    lead_team = teams_lead_dict[team_id]
+                    
+                    if (abs(norm_team['total_score'] - lead_team['total_score']) > 0.01 or
+                        abs(norm_team['average_score'] - lead_team['average_score']) > 0.001):
+                        team_consistency_issues.append(f"{norm_team['team_name']}: norm({norm_team['total_score']:.3f}) vs lead({lead_team['total_score']:.3f})")
+            
+            if team_consistency_issues:
+                self.log_test("Score Consistency - Team Scores", False, f"Mismatches: {team_consistency_issues}")
+            else:
+                self.log_test("Score Consistency - Team Scores", True, "Team scores match between endpoints")
+        
+        # Test 3: Top player in stats vs #1 in player leaderboard
+        if hasattr(self, 'group_stats') and player_leaderboard:
+            top_player_stats = self.group_stats['top_player']
+            top_player_leaderboard = player_leaderboard[0] if player_leaderboard else None
+            
+            if not top_player_leaderboard:
+                self.log_test("Score Consistency - Top Player Match", False, "No top player in leaderboard")
+            elif top_player_stats['id'] != top_player_leaderboard['id']:
+                self.log_test("Score Consistency - Top Player Match", False, 
+                             f"Different top players: stats={top_player_stats['name']}, leaderboard={top_player_leaderboard['name']}")
+            else:
+                self.log_test("Score Consistency - Top Player Match", True, 
+                             f"Top player consistent: {top_player_stats['name']}")
+        
+        return True
+    
     def test_normalization_verification(self):
         """Verify the normalization algorithm is working correctly"""
         print("\n🧮 Testing Normalization Algorithm Verification...")
