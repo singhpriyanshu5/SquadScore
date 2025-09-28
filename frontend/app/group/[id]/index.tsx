@@ -287,6 +287,23 @@ export default function GroupDashboardScreen() {
               // Update the group state
               setGroup(prev => prev ? { ...prev, group_name: newName.trim() } : null);
 
+              // Also update the recent groups list in AsyncStorage
+              try {
+                const recentGroupsJson = await AsyncStorage.getItem('recent_groups');
+                if (recentGroupsJson) {
+                  const recentGroups = JSON.parse(recentGroupsJson);
+                  const updatedGroups = recentGroups.map((g: any) => 
+                    g.id === group.id 
+                      ? { ...g, group_name: newName.trim() }
+                      : g
+                  );
+                  await AsyncStorage.setItem('recent_groups', JSON.stringify(updatedGroups));
+                }
+              } catch (storageError) {
+                console.error('Error updating recent groups:', storageError);
+                // Don't show error to user since the main update succeeded
+              }
+
               Alert.alert('Success', 'Group name updated successfully!');
             } catch (error) {
               console.error('Error updating group name:', error);
