@@ -108,7 +108,7 @@ class GameSessionCreate(BaseModel):
 class LeaderboardEntry(BaseModel):
     id: str
     name: str
-    total_score: int
+    total_score: float  # Changed to float to support normalized scores
     games_played: int
     average_score: float
 
