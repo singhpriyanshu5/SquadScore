@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend API Test Suite for Board Game Score Tracker
-Tests all endpoints with realistic data and edge cases
+Normalized Scoring System Test Suite for Board Game Score Tracker
+Tests the NEW normalized scoring system for leaderboard fairness
 """
 
 import requests
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import time
 import sys
+import os
+from dotenv import load_dotenv
 
-# Base URL from frontend environment
-BASE_URL = "https://scoreleader.preview.emergentagent.com/api"
+# Load environment variables
+load_dotenv('/app/frontend/.env')
+
+# Get backend URL from environment
+BACKEND_URL = os.getenv('EXPO_PUBLIC_BACKEND_URL', 'https://scoreleader.preview.emergentagent.com')
+BASE_URL = f"{BACKEND_URL}/api"
 
 class BoardGameAPITester:
     def __init__(self):
