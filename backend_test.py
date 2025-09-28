@@ -19,7 +19,7 @@ API_BASE = f"{BACKEND_URL}/api"
 print(f"🎯 Testing backend at: {API_BASE}")
 print("Focus: New Player Visibility Fix Verification")
 
-class PlayerCreationRetrievalTest:
+class NewPlayerVisibilityTest:
     def __init__(self):
         self.session = None
         self.test_group_id = None
