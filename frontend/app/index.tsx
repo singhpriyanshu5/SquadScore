@@ -271,18 +271,12 @@ export default function HomeScreen() {
             </View>
 
             {recentGroups.map((group) => (
-              <TouchableOpacity
+              <SwipeableGroupCard
                 key={group.id}
-                style={styles.groupCard}
+                group={group}
                 onPress={() => handleGroupPress(group.id)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.groupInfo}>
-                  <Text style={styles.groupName}>{group.group_name}</Text>
-                  <Text style={styles.groupCode}>Code: {group.group_code}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
-              </TouchableOpacity>
+                onRemove={() => handleRemoveGroup(group)}
+              />
             ))}
           </View>
         )}
