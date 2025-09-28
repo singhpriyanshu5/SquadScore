@@ -480,7 +480,9 @@ export default function GroupDashboardScreen() {
                 <View style={styles.highlightInfo}>
                   <Text style={styles.highlightTitle}>Top Player</Text>
                   <Text style={styles.highlightValue}>{stats.top_player.name}</Text>
-                  <Text style={styles.highlightSubtext}>{stats.top_player.total_score} points</Text>
+                  <Text style={styles.highlightSubtext}>
+                    {stats.top_player.total_score} normalized ({stats.top_player.raw_total_score || 0} actual)
+                  </Text>
                 </View>
               </View>
             )}
