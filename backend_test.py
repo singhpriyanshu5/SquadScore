@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Normalized Scoring System Test Suite for Board Game Score Tracker
-Tests the NEW normalized scoring system for leaderboard fairness
+Enhanced CSV Download Test Suite for Board Game Score Tracker
+Tests the ENHANCED CSV download functionality with both raw and normalized scores
 """
 
 import requests
 import json
+import csv
+from io import StringIO
 from datetime import datetime, timezone, timedelta
 import time
 import sys
