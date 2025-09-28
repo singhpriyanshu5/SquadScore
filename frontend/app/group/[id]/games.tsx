@@ -257,7 +257,7 @@ export default function GamesHistoryScreen() {
                         <View key={index} style={styles.scoreItem}>
                           <Text style={styles.scoreName}>{team.team_name}</Text>
                           <View style={styles.scoreValues}>
-                            <Text style={styles.scoreValue}>{team.normalized_score || 'N/A'}</Text>
+                            <Text style={styles.scoreValue}>{team.normalized_score}</Text>
                             <Text style={styles.scoreSubValue}>({team.score})</Text>
                           </View>
                         </View>
