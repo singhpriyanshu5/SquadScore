@@ -54,17 +54,17 @@ const SwipeableGroupCard = ({
     },
     onPanResponderMove: (evt, gestureState) => {
       // Only allow left swipe and limit the distance
-      if (gestureState.dx < 0 && gestureState.dx >= -160) {
+      if (gestureState.dx < 0 && gestureState.dx >= -100) {
         translateX.setValue(gestureState.dx);
       }
     },
     onPanResponderRelease: (evt, gestureState) => {
       translateX.flattenOffset();
       
-      // If swiped far enough to the left, show action buttons
+      // If swiped far enough to the left, show remove button
       if (gestureState.dx < -60) {
         Animated.spring(translateX, {
-          toValue: -140,
+          toValue: -80,
           useNativeDriver: true,
           tension: 100,
           friction: 8,
