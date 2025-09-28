@@ -65,7 +65,7 @@ export default function PlayersScreen() {
 
   const loadPlayers = async () => {
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/players`);
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/players-normalized`);
       if (!response.ok) {
         throw new Error('Failed to load players');
       }
