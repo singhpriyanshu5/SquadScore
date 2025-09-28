@@ -249,6 +249,23 @@ export default function GroupDashboardScreen() {
     }
   };
 
+  const updateRecentGroupsName = async (groupId: string, newName: string) => {
+    try {
+      const recentGroupsJson = await AsyncStorage.getItem('recent_groups');
+      if (recentGroupsJson) {
+        const recentGroups = JSON.parse(recentGroupsJson);
+        const updatedGroups = recentGroups.map((g: any) => 
+          g.id === groupId 
+            ? { ...g, group_name: newName }
+            : g
+        );
+        await AsyncStorage.setItem('recent_groups', JSON.stringify(updatedGroups));
+      }
+    } catch (storageError) {
+      console.error('Error updating recent groups:', storageError);
+    }
+  };
+
   const handleEditGroupName = async () => {
     if (!group) return;
 
