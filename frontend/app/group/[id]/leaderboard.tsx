@@ -199,6 +199,7 @@ export default function LeaderboardScreen() {
           <View style={styles.entryStats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{entry.total_score}</Text>
+              <Text style={styles.statSubValue}>({entry.raw_total_score || 0})</Text>
               <Text style={styles.statLabel}>Total</Text>
             </View>
             
@@ -209,6 +210,7 @@ export default function LeaderboardScreen() {
             
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{entry.average_score}</Text>
+              <Text style={styles.statSubValue}>({entry.raw_average_score || 0})</Text>
               <Text style={styles.statLabel}>Avg</Text>
             </View>
           </View>
