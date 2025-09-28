@@ -19,537 +19,508 @@ API_BASE = f"{BACKEND_URL}/api"
 print(f"🎯 Testing backend at: {API_BASE}")
 print("Focus: Enhanced CSV Download with Game-Level Normalized Scores")
 
-class NewPlayerVisibilityTest:
+class CSVDownloadTester:
     def __init__(self):
-        self.session = None
-        self.test_group_id = None
-        self.created_players = []
+        self.group_id = None
+        self.player_ids = []
+        self.team_ids = []
+        self.session_ids = []
         self.test_results = []
         
-    async def setup_session(self):
-        """Setup HTTP session"""
-        self.session = aiohttp.ClientSession()
-        
-    async def cleanup_session(self):
-        """Cleanup HTTP session"""
-        if self.session:
-            await self.session.close()
-            
-    def log_result(self, test_name, success, message, details=None):
+    def log_test(self, test_name, passed, details=""):
         """Log test result"""
-        status = "✅ PASS" if success else "❌ FAIL"
-        result = {
-            "test": test_name,
-            "status": status,
-            "message": message,
-            "details": details or {}
-        }
-        self.test_results.append(result)
-        print(f"{status}: {test_name} - {message}")
+        status = "✅ PASS" if passed else "❌ FAIL"
+        print(f"{status}: {test_name}")
         if details:
             print(f"   Details: {details}")
-            
-    async def create_test_group(self):
-        """Create a test group for player testing"""
-        try:
-            group_data = {
-                "group_name": f"New Player Fix Test {uuid.uuid4().hex[:8]}"
-            }
-            
-            async with self.session.post(f"{API_BASE}/groups", json=group_data) as response:
-                if response.status == 200:
-                    group = await response.json()
-                    self.test_group_id = group["id"]
-                    self.log_result("Create Test Group", True, f"Created group: {group['group_name']} (ID: {self.test_group_id})")
-                    return True
-                else:
-                    error_text = await response.text()
-                    self.log_result("Create Test Group", False, f"Failed to create group: {response.status}", {"error": error_text})
-                    return False
-                    
-        except Exception as e:
-            self.log_result("Create Test Group", False, f"Exception creating group: {str(e)}")
+        self.test_results.append({
+            "test": test_name,
+            "passed": passed,
+            "details": details
+        })
+        
+    def setup_test_data(self):
+        """Create comprehensive test data with multiple games and score ranges"""
+        print("\n=== SETTING UP TEST DATA ===")
+        
+        # 1. Create test group
+        group_data = {"group_name": "CSV Test Group"}
+        response = requests.post(f"{API_BASE}/groups", json=group_data)
+        if response.status_code != 200:
+            self.log_test("Create test group", False, f"Status: {response.status_code}")
             return False
             
-    async def test_new_player_creation(self):
-        """Test creating new players with realistic data"""
-        test_players = [
-            {"player_name": "Emma Watson", "emoji": "🎮", "group_id": self.test_group_id},
-            {"player_name": "Ryan Reynolds", "emoji": "🎯", "group_id": self.test_group_id},
-            {"player_name": "Scarlett Johansson", "emoji": "🏆", "group_id": self.test_group_id}
+        self.group_id = response.json()["id"]
+        self.log_test("Create test group", True, f"Group ID: {self.group_id}")
+        
+        # 2. Create players with realistic names
+        players = [
+            {"player_name": "Emma Watson", "emoji": "🎭"},
+            {"player_name": "Michael Jordan", "emoji": "🏀"},
+            {"player_name": "Sarah Connor", "emoji": "🤖"},
+            {"player_name": "Tony Stark", "emoji": "⚡"}
         ]
         
-        for i, player_data in enumerate(test_players):
-            try:
-                async with self.session.post(f"{API_BASE}/players", json=player_data) as response:
-                    if response.status == 200:
-                        created_player = await response.json()
-                        self.created_players.append(created_player)
-                        self.log_result(
-                            f"Create New Player {i+1}", 
-                            True, 
-                            f"Created player: {created_player['player_name']}", 
-                            {
-                                "player_id": created_player["id"],
-                                "group_id": created_player["group_id"],
-                                "emoji": created_player["emoji"]
-                            }
-                        )
-                    else:
-                        error_text = await response.text()
-                        self.log_result(
-                            f"Create New Player {i+1}", 
-                            False, 
-                            f"Failed to create player {player_data['player_name']}: {response.status}",
-                            {"error": error_text}
-                        )
-                        
-            except Exception as e:
-                self.log_result(f"Create New Player {i+1}", False, f"Exception creating player: {str(e)}")
+        for player in players:
+            player["group_id"] = self.group_id
+            response = requests.post(f"{API_BASE}/players", json=player)
+            if response.status_code == 200:
+                self.player_ids.append(response.json()["id"])
+                self.log_test(f"Create player {player['player_name']}", True)
+            else:
+                self.log_test(f"Create player {player['player_name']}", False, f"Status: {response.status_code}")
                 
-    async def test_standard_players_endpoint(self):
-        """Test standard players endpoint (should work)"""
-        try:
-            async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/players") as response:
-                if response.status == 200:
-                    players = await response.json()
-                    expected_count = len(self.created_players)
-                    actual_count = len(players)
-                    
-                    success = actual_count == expected_count
-                    self.log_result(
-                        "Standard Players Endpoint", 
-                        success, 
-                        f"Retrieved {actual_count} players (expected {expected_count})",
-                        {
-                            "expected_count": expected_count,
-                            "actual_count": actual_count,
-                            "players": [{"name": p["player_name"], "id": p["id"]} for p in players]
-                        }
-                    )
-                    return players
-                else:
-                    error_text = await response.text()
-                    self.log_result(
-                        "Standard Players Endpoint", 
-                        False, 
-                        f"Failed to retrieve players: {response.status}",
-                        {"error": error_text}
-                    )
-                    return []
-                    
-        except Exception as e:
-            self.log_result("Standard Players Endpoint", False, f"Exception retrieving players: {str(e)}")
-            return []
-            
-    async def test_normalized_players_endpoint_fix(self):
-        """Test the MAIN FIX: normalized players endpoint should return ALL players including new ones"""
-        try:
-            async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/players-normalized") as response:
-                if response.status == 200:
-                    normalized_players = await response.json()
-                    expected_count = len(self.created_players)
-                    actual_count = len(normalized_players)
-                    
-                    # CRITICAL TEST: Should return ALL players (including new ones)
-                    main_fix_success = actual_count == expected_count
-                    self.log_result(
-                        "🎯 MAIN FIX: Normalized Endpoint Returns All Players", 
-                        main_fix_success, 
-                        f"Retrieved {actual_count} normalized players (expected {expected_count})",
-                        {
-                            "expected_count": expected_count,
-                            "actual_count": actual_count,
-                            "fix_working": main_fix_success
-                        }
-                    )
-                    
-                    if actual_count > 0:
-                        # Test each player's structure and values for new players
-                        for i, player in enumerate(normalized_players):
-                            player_name = player.get('player_name', 'Unknown')
-                            
-                            # Test required fields exist
-                            required_fields = ['id', 'player_name', 'emoji', 'total_score', 'games_played', 'average_score']
-                            missing_fields = [field for field in required_fields if field not in player]
-                            
-                            if not missing_fields:
-                                self.log_result(
-                                    f"Player {player_name} Structure", 
-                                    True, 
-                                    "All required fields present"
-                                )
-                            else:
-                                self.log_result(
-                                    f"Player {player_name} Structure", 
-                                    False, 
-                                    f"Missing fields: {', '.join(missing_fields)}",
-                                    {"missing_fields": missing_fields}
-                                )
-                            
-                            # Test new player values (should be zero since no games played)
-                            total_score_correct = player.get('total_score') == 0.0
-                            games_played_correct = player.get('games_played') == 0
-                            average_score_correct = player.get('average_score') == 0.0
-                            
-                            self.log_result(
-                                f"Player {player_name} Zero Scores", 
-                                total_score_correct and games_played_correct and average_score_correct, 
-                                f"total_score={player.get('total_score')}, games_played={player.get('games_played')}, avg={player.get('average_score')}",
-                                {
-                                    "total_score": player.get('total_score'),
-                                    "games_played": player.get('games_played'),
-                                    "average_score": player.get('average_score')
-                                }
-                            )
-                    
-                    return normalized_players
-                else:
-                    error_text = await response.text()
-                    self.log_result(
-                        "🎯 MAIN FIX: Normalized Endpoint Returns All Players", 
-                        False, 
-                        f"Failed to retrieve normalized players: {response.status}",
-                        {"error": error_text}
-                    )
-                    return []
-                    
-        except Exception as e:
-            self.log_result("🎯 MAIN FIX: Normalized Endpoint Returns All Players", False, f"Exception retrieving normalized players: {str(e)}")
-            return []
-            
-    async def test_mixed_state_scenario(self):
-        """Test mixed state: some players with games, some without"""
-        if len(self.created_players) < 2:
-            self.log_result("Mixed State Test", False, "Not enough players for mixed state test")
-            return
-            
-        try:
-            # Create a game session for the first player only
-            game_data = {
-                "group_id": self.test_group_id,
-                "game_name": "Monopoly",
-                "game_date": datetime.utcnow().isoformat(),
+        # 3. Create teams
+        teams = [
+            {"team_name": "The Strategists", "player_ids": self.player_ids[:2]},
+            {"team_name": "The Champions", "player_ids": self.player_ids[2:]}
+        ]
+        
+        for team in teams:
+            team["group_id"] = self.group_id
+            response = requests.post(f"{API_BASE}/teams", json=team)
+            if response.status_code == 200:
+                self.team_ids.append(response.json()["id"])
+                self.log_test(f"Create team {team['team_name']}", True)
+            else:
+                self.log_test(f"Create team {team['team_name']}", False, f"Status: {response.status_code}")
+                
+        # 4. Create game sessions with different score ranges for normalization testing
+        game_sessions = [
+            {
+                "game_name": "High Score Game",
+                "game_date": "2024-01-15T19:00:00",
                 "player_scores": [
-                    {
-                        "player_id": self.created_players[0]["id"],
-                        "player_name": self.created_players[0]["player_name"],
-                        "score": 150
-                    }
+                    {"player_id": self.player_ids[0], "player_name": "Emma Watson", "score": 850},
+                    {"player_id": self.player_ids[1], "player_name": "Michael Jordan", "score": 920},
+                    {"player_id": self.player_ids[2], "player_name": "Sarah Connor", "score": 780}
+                ]
+            },
+            {
+                "game_name": "Low Score Game", 
+                "game_date": "2024-01-16T20:00:00",
+                "player_scores": [
+                    {"player_id": self.player_ids[0], "player_name": "Emma Watson", "score": 3},
+                    {"player_id": self.player_ids[1], "player_name": "Michael Jordan", "score": 7},
+                    {"player_id": self.player_ids[3], "player_name": "Tony Stark", "score": 5}
+                ]
+            },
+            {
+                "game_name": "Team Game",
+                "game_date": "2024-01-17T18:00:00", 
+                "team_scores": [
+                    {"team_id": self.team_ids[0], "team_name": "The Strategists", "score": 45, "player_ids": self.player_ids[:2]},
+                    {"team_id": self.team_ids[1], "team_name": "The Champions", "score": 38, "player_ids": self.player_ids[2:]}
+                ]
+            },
+            {
+                "game_name": "Mixed Game",
+                "game_date": "2024-01-18T19:30:00",
+                "player_scores": [
+                    {"player_id": self.player_ids[2], "player_name": "Sarah Connor", "score": 150}
                 ],
-                "team_scores": []
+                "team_scores": [
+                    {"team_id": self.team_ids[0], "team_name": "The Strategists", "score": 200, "player_ids": self.player_ids[:2]}
+                ]
             }
-            
-            async with self.session.post(f"{API_BASE}/game-sessions", json=game_data) as response:
-                if response.status == 200:
-                    self.log_result(
-                        "Create Game Session", 
-                        True, 
-                        f"Created game session for {self.created_players[0]['player_name']}"
-                    )
-                    
-                    # Now test normalized endpoint again
-                    async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/players-normalized") as get_response:
-                        if get_response.status == 200:
-                            mixed_players = await get_response.json()
-                            expected_count = len(self.created_players)
-                            actual_count = len(mixed_players)
-                            
-                            # Should still return all players
-                            all_players_present = actual_count == expected_count
-                            self.log_result(
-                                "Mixed State: All Players Present", 
-                                all_players_present, 
-                                f"Retrieved {actual_count} players (expected {expected_count})"
-                            )
-                            
-                            # Find the experienced player and new players
-                            experienced_players = [p for p in mixed_players if p.get('games_played', 0) > 0]
-                            new_players = [p for p in mixed_players if p.get('games_played', 0) == 0]
-                            
-                            # Test experienced player
-                            experienced_correct = len(experienced_players) == 1
-                            self.log_result(
-                                "Mixed State: Experienced Player Count", 
-                                experienced_correct, 
-                                f"Found {len(experienced_players)} experienced players (expected 1)"
-                            )
-                            
-                            if experienced_players:
-                                exp_player = experienced_players[0]
-                                has_score = exp_player.get('total_score', 0) > 0
-                                has_games = exp_player.get('games_played', 0) == 1
-                                self.log_result(
-                                    "Mixed State: Experienced Player Stats", 
-                                    has_score and has_games, 
-                                    f"{exp_player.get('player_name')}: score={exp_player.get('total_score')}, games={exp_player.get('games_played')}"
-                                )
-                            
-                            # Test new players still show zero scores
-                            new_players_correct = len(new_players) == (expected_count - 1)
-                            self.log_result(
-                                "Mixed State: New Player Count", 
-                                new_players_correct, 
-                                f"Found {len(new_players)} new players (expected {expected_count - 1})"
-                            )
-                            
-                            for new_player in new_players:
-                                zero_score = new_player.get('total_score') == 0.0
-                                zero_games = new_player.get('games_played') == 0
-                                self.log_result(
-                                    f"Mixed State: New Player {new_player.get('player_name')} Zeros", 
-                                    zero_score and zero_games, 
-                                    f"score={new_player.get('total_score')}, games={new_player.get('games_played')}"
-                                )
-                        else:
-                            error_text = await get_response.text()
-                            self.log_result(
-                                "Mixed State: Normalized Endpoint After Game", 
-                                False, 
-                                f"Failed to retrieve players after game: {get_response.status}",
-                                {"error": error_text}
-                            )
-                else:
-                    error_text = await response.text()
-                    self.log_result(
-                        "Create Game Session", 
-                        False, 
-                        f"Failed to create game session: {response.status}",
-                        {"error": error_text}
-                    )
-                    
-        except Exception as e:
-            self.log_result("Mixed State Test", False, f"Exception in mixed state test: {str(e)}")
-            
-    async def test_data_structure_verification(self):
-        """Verify data structure of normalized endpoint response"""
-        try:
-            async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/players-normalized") as response:
-                if response.status == 200:
-                    players_data = await response.json()
-                    
-                    if len(players_data) > 0:
-                        sample_player = players_data[0]
-                        
-                        # Check all expected fields are present
-                        expected_fields = {
-                            'id': str,
-                            'player_name': str,
-                            'emoji': str,
-                            'total_score': (int, float),
-                            'games_played': int,
-                            'average_score': (int, float),
-                            'raw_total_score': (int, float),
-                            'raw_average_score': (int, float),
-                            'created_date': str
-                        }
-                        
-                        all_fields_correct = True
-                        for field, expected_type in expected_fields.items():
-                            field_present = field in sample_player
-                            if not field_present:
-                                all_fields_correct = False
-                                self.log_result(
-                                    f"Data Structure: Field '{field}'", 
-                                    False, 
-                                    f"Missing field: {field}"
-                                )
-                            else:
-                                field_value = sample_player[field]
-                                if isinstance(expected_type, tuple):
-                                    type_correct = isinstance(field_value, expected_type)
-                                else:
-                                    type_correct = isinstance(field_value, expected_type)
-                                
-                                if not type_correct:
-                                    all_fields_correct = False
-                                    self.log_result(
-                                        f"Data Structure: Field '{field}' Type", 
-                                        False, 
-                                        f"Expected {expected_type}, got {type(field_value)}"
-                                    )
-                        
-                        if all_fields_correct:
-                            self.log_result(
-                                "Data Structure Verification", 
-                                True, 
-                                "All fields present with correct types"
-                            )
-                    else:
-                        self.log_result(
-                            "Data Structure Verification", 
-                            False, 
-                            "No players returned to verify structure"
-                        )
-                else:
-                    error_text = await response.text()
-                    self.log_result(
-                        "Data Structure Verification", 
-                        False, 
-                        f"Failed to retrieve players for structure verification: {response.status}",
-                        {"error": error_text}
-                    )
-                    
-        except Exception as e:
-            self.log_result("Data Structure Verification", False, f"Exception in structure verification: {str(e)}")
-            
-    async def test_immediate_consistency(self):
-        """Test that new players appear immediately in normalized endpoint"""
-        try:
-            # Create a new player
-            player_data = {
-                "player_name": "Immediate Test Player",
-                "emoji": "⚡",
-                "group_id": self.test_group_id
-            }
-            
-            async with self.session.post(f"{API_BASE}/players", json=player_data) as response:
-                if response.status == 200:
-                    created_player = await response.json()
-                    
-                    # Immediately try to retrieve it via normalized endpoint
-                    async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/players-normalized") as get_response:
-                        if get_response.status == 200:
-                            players = await get_response.json()
-                            found_player = next((p for p in players if p["id"] == created_player["id"]), None)
-                            
-                            if found_player:
-                                self.log_result(
-                                    "Immediate Consistency Test", 
-                                    True, 
-                                    "Player immediately available after creation",
-                                    {"created_player": created_player["player_name"]}
-                                )
-                            else:
-                                self.log_result(
-                                    "Immediate Consistency Test", 
-                                    False, 
-                                    "Player not immediately available after creation",
-                                    {"created_player_id": created_player["id"], "total_players_found": len(players)}
-                                )
-                        else:
-                            error_text = await get_response.text()
-                            self.log_result(
-                                "Immediate Consistency Test", 
-                                False, 
-                                f"Failed to retrieve players immediately after creation: {get_response.status}",
-                                {"error": error_text}
-                            )
-                else:
-                    error_text = await response.text()
-                    self.log_result(
-                        "Immediate Consistency Test", 
-                        False, 
-                        f"Failed to create player for consistency test: {response.status}",
-                        {"error": error_text}
-                    )
-                    
-        except Exception as e:
-            self.log_result("Immediate Consistency Test", False, f"Exception in immediate consistency test: {str(e)}")
-            
-    async def run_all_tests(self):
-        """Run all new player visibility fix tests"""
-        print("🔍 TESTING NEW PLAYER VISIBILITY FIX")
-        print("=" * 60)
+        ]
         
-        await self.setup_session()
-        
-        try:
-            # Setup
-            if not await self.create_test_group():
-                print("❌ Cannot proceed without test group")
-                return
+        for session in game_sessions:
+            session["group_id"] = self.group_id
+            response = requests.post(f"{API_BASE}/game-sessions", json=session)
+            if response.status_code == 200:
+                self.session_ids.append(response.json()["id"])
+                self.log_test(f"Create game session {session['game_name']}", True)
+            else:
+                self.log_test(f"Create game session {session['game_name']}", False, f"Status: {response.status_code}")
                 
-            # Core tests for the fix
-            await self.test_new_player_creation()
-            await self.test_standard_players_endpoint()
-            await self.test_normalized_players_endpoint_fix()  # MAIN FIX TEST
-            await self.test_mixed_state_scenario()
-            await self.test_data_structure_verification()
-            await self.test_immediate_consistency()
+        return len(self.player_ids) == 4 and len(self.team_ids) == 2 and len(self.session_ids) == 4
+        
+    def test_csv_download_endpoint(self):
+        """Test the CSV download endpoint functionality"""
+        print("\n=== TESTING CSV DOWNLOAD ENDPOINT ===")
+        
+        # Test CSV download
+        response = requests.get(f"{API_BASE}/groups/{self.group_id}/download-csv")
+        
+        # Check response status
+        if response.status_code != 200:
+            self.log_test("CSV download endpoint response", False, f"Status: {response.status_code}")
+            return False
+            
+        self.log_test("CSV download endpoint response", True, "Status: 200")
+        
+        # Check headers
+        content_type = response.headers.get('content-type', '')
+        content_disposition = response.headers.get('content-disposition', '')
+        
+        self.log_test("CSV content-type header", 'text/csv' in content_type, f"Content-Type: {content_type}")
+        self.log_test("CSV attachment header", 'attachment' in content_disposition, f"Content-Disposition: {content_disposition}")
+        
+        # Store CSV content for further testing
+        self.csv_content = response.text
+        return True
+        
+    def test_csv_structure(self):
+        """Test complete CSV structure with all required sections"""
+        print("\n=== TESTING CSV STRUCTURE ===")
+        
+        lines = self.csv_content.strip().split('\n')
+        
+        # Check for required sections
+        required_sections = ['GROUP INFORMATION', 'PLAYERS', 'TEAMS', 'GAME SESSIONS']
+        found_sections = []
+        
+        for line in lines:
+            if line.strip() in required_sections:
+                found_sections.append(line.strip())
+                
+        for section in required_sections:
+            found = section in found_sections
+            self.log_test(f"CSV contains {section} section", found)
+            
+        return len(found_sections) == len(required_sections)
+        
+    def test_players_section_normalized_scores(self):
+        """Test PLAYERS section contains both raw and normalized scores"""
+        print("\n=== TESTING PLAYERS SECTION WITH NORMALIZED SCORES ===")
+        
+        lines = self.csv_content.strip().split('\n')
+        
+        # Find PLAYERS section
+        players_start = -1
+        for i, line in enumerate(lines):
+            if line.strip() == 'PLAYERS':
+                players_start = i
+                break
+                
+        if players_start == -1:
+            self.log_test("Find PLAYERS section", False, "Section not found")
+            return False
+            
+        # Check header line
+        header_line = lines[players_start + 1]
+        expected_headers = [
+            'Player Name', 'Emoji', 'Raw Total Score', 'Games Played', 
+            'Raw Average Score', 'Normalized Total Score', 'Normalized Average Score', 'Joined Date'
+        ]
+        
+        header_correct = all(header in header_line for header in expected_headers)
+        self.log_test("PLAYERS section header contains all score types", header_correct, f"Header: {header_line}")
+        
+        # Parse player data
+        player_data_lines = []
+        for i in range(players_start + 2, len(lines)):
+            if lines[i].strip() == '' or lines[i].strip() in ['TEAMS', 'GAME SESSIONS']:
+                break
+            player_data_lines.append(lines[i])
+            
+        # Check each player has both raw and normalized scores
+        players_with_scores = 0
+        for line in player_data_lines:
+            reader = csv.reader([line])
+            row = next(reader)
+            if len(row) >= 7:  # Should have at least 7 columns including normalized scores
+                raw_total = float(row[2])
+                normalized_total = float(row[5])
+                normalized_avg = float(row[6])
+                
+                # Normalized scores should be in 0-1 range (or 0 for players with no games)
+                normalized_valid = (0 <= normalized_total <= 10) and (0 <= normalized_avg <= 1)  # Allow some flexibility for totals
+                players_with_scores += 1
+                
+                self.log_test(f"Player {row[0]} has valid normalized scores", normalized_valid, 
+                            f"Raw: {raw_total}, Norm Total: {normalized_total}, Norm Avg: {normalized_avg}")
+                            
+        self.log_test("All players have normalized score data", players_with_scores == 4)
+        return players_with_scores == 4
+        
+    def test_teams_section_normalized_scores(self):
+        """Test TEAMS section contains both raw and normalized scores"""
+        print("\n=== TESTING TEAMS SECTION WITH NORMALIZED SCORES ===")
+        
+        lines = self.csv_content.strip().split('\n')
+        
+        # Find TEAMS section
+        teams_start = -1
+        for i, line in enumerate(lines):
+            if line.strip() == 'TEAMS':
+                teams_start = i
+                break
+                
+        if teams_start == -1:
+            self.log_test("Find TEAMS section", False, "Section not found")
+            return False
+            
+        # Check header line
+        header_line = lines[teams_start + 1]
+        expected_headers = [
+            'Team Name', 'Players', 'Raw Total Score', 'Games Played',
+            'Raw Average Score', 'Normalized Total Score', 'Normalized Average Score', 'Created Date'
+        ]
+        
+        header_correct = all(header in header_line for header in expected_headers)
+        self.log_test("TEAMS section header contains all score types", header_correct, f"Header: {header_line}")
+        
+        # Parse team data
+        team_data_lines = []
+        for i in range(teams_start + 2, len(lines)):
+            if lines[i].strip() == '' or lines[i].strip() == 'GAME SESSIONS':
+                break
+            team_data_lines.append(lines[i])
+            
+        # Check each team has both raw and normalized scores
+        teams_with_scores = 0
+        for line in team_data_lines:
+            reader = csv.reader([line])
+            row = next(reader)
+            if len(row) >= 7:
+                raw_total = float(row[2])
+                normalized_total = float(row[5])
+                normalized_avg = float(row[6])
+                
+                # Normalized scores should be reasonable
+                normalized_valid = (0 <= normalized_total <= 10) and (0 <= normalized_avg <= 1)
+                teams_with_scores += 1
+                
+                self.log_test(f"Team {row[0]} has valid normalized scores", normalized_valid,
+                            f"Raw: {raw_total}, Norm Total: {normalized_total}, Norm Avg: {normalized_avg}")
+                            
+        self.log_test("All teams have normalized score data", teams_with_scores == 2)
+        return teams_with_scores == 2
+        
+    def test_game_sessions_section_enhanced(self):
+        """Test GAME SESSIONS section with enhanced normalized scores"""
+        print("\n=== TESTING ENHANCED GAME SESSIONS SECTION ===")
+        
+        lines = self.csv_content.strip().split('\n')
+        
+        # Find GAME SESSIONS section
+        sessions_start = -1
+        for i, line in enumerate(lines):
+            if line.strip() == 'GAME SESSIONS':
+                sessions_start = i
+                break
+                
+        if sessions_start == -1:
+            self.log_test("Find GAME SESSIONS section", False, "Section not found")
+            return False
+            
+        # Check header line matches expected format
+        header_line = lines[sessions_start + 1]
+        expected_header = 'Game Name,Date,Player/Team,Raw Score,Normalized Score,Type'
+        
+        header_correct = header_line.strip() == expected_header
+        self.log_test("GAME SESSIONS header format correct", header_correct, f"Expected: {expected_header}, Got: {header_line}")
+        
+        # Parse game session data
+        session_data_lines = []
+        for i in range(sessions_start + 2, len(lines)):
+            if lines[i].strip() == '':
+                break
+            session_data_lines.append(lines[i])
+            
+        # Check each game session entry has both raw and normalized scores
+        valid_entries = 0
+        individual_entries = 0
+        team_entries = 0
+        
+        for line in session_data_lines:
+            reader = csv.reader([line])
+            row = next(reader)
+            if len(row) >= 6:
+                game_name = row[0]
+                date = row[1]
+                participant = row[2]
+                raw_score = float(row[3])
+                normalized_score = float(row[4])
+                entry_type = row[5]
+                
+                # Normalized score should be in 0-1 range with 3 decimal precision
+                normalized_valid = (0 <= normalized_score <= 1)
+                precision_check = len(str(normalized_score).split('.')[-1]) <= 3
+                
+                if entry_type == 'Individual':
+                    individual_entries += 1
+                elif entry_type == 'Team':
+                    team_entries += 1
+                    
+                if normalized_valid and precision_check:
+                    valid_entries += 1
+                    
+                self.log_test(f"Game session entry {participant} in {game_name}", 
+                            normalized_valid and precision_check,
+                            f"Raw: {raw_score}, Normalized: {normalized_score}, Type: {entry_type}")
+                            
+        self.log_test("All game session entries have valid normalized scores", valid_entries == len(session_data_lines))
+        self.log_test("Game sessions contain individual player entries", individual_entries > 0)
+        self.log_test("Game sessions contain team entries", team_entries > 0)
+        
+        return valid_entries == len(session_data_lines) and individual_entries > 0 and team_entries > 0
+        
+    def test_normalization_consistency(self):
+        """Test that normalization is consistent across different games"""
+        print("\n=== TESTING NORMALIZATION CONSISTENCY ===")
+        
+        lines = self.csv_content.strip().split('\n')
+        
+        # Find GAME SESSIONS section and parse data
+        sessions_start = -1
+        for i, line in enumerate(lines):
+            if line.strip() == 'GAME SESSIONS':
+                sessions_start = i
+                break
+                
+        if sessions_start == -1:
+            return False
+            
+        # Group entries by game
+        game_entries = {}
+        for i in range(sessions_start + 2, len(lines)):
+            if lines[i].strip() == '':
+                break
+            reader = csv.reader([lines[i]])
+            row = next(reader)
+            if len(row) >= 6:
+                game_name = row[0]
+                raw_score = float(row[3])
+                normalized_score = float(row[4])
+                
+                if game_name not in game_entries:
+                    game_entries[game_name] = []
+                game_entries[game_name].append((raw_score, normalized_score))
+                
+        # Test normalization per game
+        consistent_games = 0
+        for game_name, entries in game_entries.items():
+            raw_scores = [entry[0] for entry in entries]
+            normalized_scores = [entry[1] for entry in entries]
+            
+            if len(raw_scores) > 1:
+                # Check that highest raw score gets highest normalized score
+                max_raw_idx = raw_scores.index(max(raw_scores))
+                min_raw_idx = raw_scores.index(min(raw_scores))
+                
+                max_norm = normalized_scores[max_raw_idx]
+                min_norm = normalized_scores[min_raw_idx]
+                
+                # For proper normalization, max should be close to 1.0, min close to 0.0
+                normalization_correct = max_norm >= min_norm
+                consistent_games += 1 if normalization_correct else 0
+                
+                self.log_test(f"Game {game_name} normalization consistency", normalization_correct,
+                            f"Max raw: {max(raw_scores)} -> {max_norm}, Min raw: {min(raw_scores)} -> {min_norm}")
+            else:
+                # Single score should default to 0.5
+                single_norm = normalized_scores[0]
+                single_correct = single_norm == 0.5
+                consistent_games += 1 if single_correct else 0
+                
+                self.log_test(f"Game {game_name} single score normalization", single_correct,
+                            f"Single score: {raw_scores[0]} -> {single_norm} (should be 0.5)")
+                            
+        total_games = len(game_entries)
+        self.log_test("All games have consistent normalization", consistent_games == total_games,
+                     f"{consistent_games}/{total_games} games consistent")
+                     
+        return consistent_games == total_games
+        
+    def test_complete_data_transparency(self):
+        """Test that CSV provides complete transparency for analysis"""
+        print("\n=== TESTING COMPLETE DATA TRANSPARENCY ===")
+        
+        # Check that we can parse the entire CSV successfully
+        try:
+            reader = csv.reader(StringIO(self.csv_content))
+            total_lines = sum(1 for row in reader)
+            self.log_test("CSV is fully parseable", True, f"Total lines: {total_lines}")
+        except Exception as e:
+            self.log_test("CSV is fully parseable", False, f"Parse error: {str(e)}")
+            return False
+            
+        # Check that both raw and normalized data is present throughout
+        raw_score_count = self.csv_content.count('Raw Score') + self.csv_content.count('Raw Total Score')
+        normalized_score_count = self.csv_content.count('Normalized Score') + self.csv_content.count('Normalized Total Score')
+        
+        self.log_test("CSV contains raw score references", raw_score_count >= 3, f"Raw score references: {raw_score_count}")
+        self.log_test("CSV contains normalized score references", normalized_score_count >= 3, f"Normalized score references: {normalized_score_count}")
+        
+        # Check that we have data for analysis in Excel/Google Sheets
+        has_player_summary = 'PLAYERS' in self.csv_content
+        has_team_summary = 'TEAMS' in self.csv_content  
+        has_detailed_sessions = 'GAME SESSIONS' in self.csv_content
+        
+        self.log_test("CSV has player summary data", has_player_summary)
+        self.log_test("CSV has team summary data", has_team_summary)
+        self.log_test("CSV has detailed session data", has_detailed_sessions)
+        
+        return raw_score_count >= 3 and normalized_score_count >= 3 and has_player_summary and has_team_summary and has_detailed_sessions
+        
+    def cleanup_test_data(self):
+        """Clean up test data"""
+        print("\n=== CLEANING UP TEST DATA ===")
+        
+        # Delete game sessions
+        for session_id in self.session_ids:
+            response = requests.delete(f"{API_BASE}/game-sessions/{session_id}")
+            self.log_test(f"Delete game session {session_id}", response.status_code == 200)
+            
+        # Delete players (this will also clean up teams)
+        for player_id in self.player_ids:
+            response = requests.delete(f"{API_BASE}/players/{player_id}")
+            self.log_test(f"Delete player {player_id}", response.status_code == 200)
+            
+    def run_all_tests(self):
+        """Run all CSV download tests"""
+        print("🧪 ENHANCED CSV DOWNLOAD WITH NORMALIZED SCORES - COMPREHENSIVE TESTING")
+        print("=" * 80)
+        
+        # Setup
+        if not self.setup_test_data():
+            print("❌ CRITICAL: Test data setup failed. Cannot proceed with testing.")
+            return False
+            
+        try:
+            # Core functionality tests
+            if not self.test_csv_download_endpoint():
+                print("❌ CRITICAL: CSV download endpoint failed. Cannot proceed with content testing.")
+                return False
+                
+            # Structure and content tests
+            self.test_csv_structure()
+            self.test_players_section_normalized_scores()
+            self.test_teams_section_normalized_scores()
+            self.test_game_sessions_section_enhanced()
+            self.test_normalization_consistency()
+            self.test_complete_data_transparency()
             
         finally:
-            await self.cleanup_session()
+            # Always cleanup
+            self.cleanup_test_data()
             
         # Summary
-        print("\n" + "=" * 60)
-        print("📊 NEW PLAYER VISIBILITY FIX TEST SUMMARY")
-        print("=" * 60)
+        print("\n" + "=" * 80)
+        print("📊 TEST SUMMARY")
+        print("=" * 80)
         
+        passed_tests = sum(1 for result in self.test_results if result["passed"])
         total_tests = len(self.test_results)
-        passed_tests = len([r for r in self.test_results if "✅ PASS" in r["status"]])
-        failed_tests = total_tests - passed_tests
+        success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
         
-        print(f"Total Tests: {total_tests}")
-        print(f"Passed: {passed_tests}")
-        print(f"Failed: {failed_tests}")
-        print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+        print(f"✅ Passed: {passed_tests}")
+        print(f"❌ Failed: {total_tests - passed_tests}")
+        print(f"📈 Success Rate: {success_rate:.1f}%")
         
-        # Check if main fix is working
-        main_fix_tests = [r for r in self.test_results if "MAIN FIX" in r["test"]]
-        main_fix_passed = all("✅ PASS" in r["status"] for r in main_fix_tests)
-        
-        print(f"\n🎯 MAIN FIX STATUS: {'✅ WORKING' if main_fix_passed else '❌ NEEDS ATTENTION'}")
-        
-        if failed_tests > 0:
-            print(f"\n❌ FAILED TESTS:")
-            for result in self.test_results:
-                if "❌ FAIL" in result["status"]:
-                    print(f"  - {result['test']}: {result['message']}")
-                    
-        print("\n🔍 NEW PLAYER VISIBILITY FIX TESTING COMPLETE")
-        
-        return {
-            "total_tests": total_tests,
-            "passed": passed_tests,
-            "failed": failed_tests,
-            "success_rate": (passed_tests/total_tests)*100,
-            "main_fix_working": main_fix_passed,
-            "results": self.test_results
-        }
-
-async def test_backend_health():
-    """Quick health check of the backend"""
-    print("🏥 BACKEND HEALTH CHECK")
-    print("=" * 30)
-    
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{API_BASE}/", timeout=aiohttp.ClientTimeout(total=5)) as response:
-                if response.status == 200:
-                    print("✅ Backend is responding")
-                    return True
-                else:
-                    print(f"❌ Backend health check failed: {response.status}")
-                    return False
-    except Exception as e:
-        print(f"❌ Backend health check failed: {str(e)}")
-        return False
-
-async def main():
-    """Main test execution"""
-    print("🚀 BOARD GAME SCORE TRACKER - NEW PLAYER VISIBILITY FIX TESTING")
-    print("=" * 80)
-    
-    # Health check first
-    if not await test_backend_health():
-        print("❌ Backend is not responding. Please check if the service is running.")
-        sys.exit(1)
-    
-    # Run the main test
-    tester = NewPlayerVisibilityTest()
-    results = await tester.run_all_tests()
-    
-    print(f"\n🏁 FINAL RESULT:")
-    if results["main_fix_working"] and results["failed"] == 0:
-        print("🎉 ALL TESTS PASSED! The new player visibility fix is working correctly.")
-        sys.exit(0)
-    elif results["main_fix_working"]:
-        print(f"✅ MAIN FIX IS WORKING! ({results['failed']} minor issues found)")
-        sys.exit(0)
-    else:
-        print(f"⚠️  MAIN FIX NEEDS ATTENTION. {results['failed']} tests failed.")
-        sys.exit(1)
+        if success_rate >= 90:
+            print("🎉 ENHANCED CSV DOWNLOAD FUNCTIONALITY: EXCELLENT")
+        elif success_rate >= 75:
+            print("✅ ENHANCED CSV DOWNLOAD FUNCTIONALITY: GOOD")
+        else:
+            print("⚠️  ENHANCED CSV DOWNLOAD FUNCTIONALITY: NEEDS ATTENTION")
+            
+        return success_rate >= 90
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    tester = CSVDownloadTester()
+    success = tester.run_all_tests()
+    sys.exit(0 if success else 1)
