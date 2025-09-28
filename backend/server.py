@@ -849,7 +849,7 @@ def convert_to_csv(data):
     # Add teams section
     if data["teams"]:
         lines.append('TEAMS')
-        lines.append('Team Name,Players,Total Score,Games Played,Average Score,Created Date')
+        lines.append('Team Name,Players,Raw Total Score,Games Played,Raw Average Score,Normalized Total Score,Normalized Average Score,Created Date')
         for team in data["teams"]:
             player_names = []
             for player_id in team["player_ids"]:
@@ -859,7 +859,9 @@ def convert_to_csv(data):
             players_str = "; ".join(player_names)
             avg_score = team["total_score"] / team["games_played"] if team["games_played"] > 0 else 0
             created_date = team["created_date"].split("T")[0]
-            lines.append(f'"{team["team_name"]}","{players_str}",{team["total_score"]},{team["games_played"]},{avg_score:.2f},{created_date}')
+            normalized_total = team.get("normalized_total_score", 0)
+            normalized_avg = team.get("normalized_average_score", 0)
+            lines.append(f'"{team["team_name"]}","{players_str}",{team["total_score"]},{team["games_played"]},{avg_score:.2f},{normalized_total},{normalized_avg},{created_date}')
         lines.append('')
     
     # Add game sessions section
