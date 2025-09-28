@@ -19,52 +19,35 @@ load_dotenv('/app/frontend/.env')
 BACKEND_URL = os.getenv('EXPO_PUBLIC_BACKEND_URL', 'https://scoreleader.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
-class CSVDownloadTester:
+class PlayerCreationRetrievalTest:
     def __init__(self):
-        self.base_url = BASE_URL
-        self.session = requests.Session()
-        self.test_data = {}
-        self.failed_tests = []
-        self.passed_tests = []
+        self.session = None
+        self.test_group_id = None
+        self.created_players = []
+        self.test_results = []
         
-    def log_test(self, test_name, success, message=""):
-        """Log test results"""
-        if success:
-            self.passed_tests.append(test_name)
-            print(f"✅ {test_name}: PASSED {message}")
-        else:
-            self.failed_tests.append(test_name)
-            print(f"❌ {test_name}: FAILED {message}")
-    
-    def make_request(self, method, endpoint, data=None, expected_status=200):
-        """Make HTTP request with error handling"""
-        url = f"{self.base_url}{endpoint}"
-        try:
-            if method.upper() == "GET":
-                response = self.session.get(url)
-            elif method.upper() == "POST":
-                response = self.session.post(url, json=data)
-            elif method.upper() == "PUT":
-                response = self.session.put(url, json=data)
-            elif method.upper() == "DELETE":
-                response = self.session.delete(url)
+    async def setup_session(self):
+        """Setup HTTP session"""
+        self.session = aiohttp.ClientSession()
+        
+    async def cleanup_session(self):
+        """Cleanup HTTP session"""
+        if self.session:
+            await self.session.close()
             
-            print(f"  {method} {url} -> {response.status_code}")
-            
-            if response.status_code != expected_status:
-                print(f"  Expected {expected_status}, got {response.status_code}")
-                if response.text:
-                    print(f"  Response: {response.text}")
-                return None, response.status_code
-                
-            return response.json() if response.text and 'application/json' in response.headers.get('content-type', '') else response.text, response.status_code
-            
-        except requests.exceptions.RequestException as e:
-            print(f"  Request failed: {e}")
-            return None, 0
-        except json.JSONDecodeError as e:
-            print(f"  JSON decode error: {e}")
-            return response.text if 'response' in locals() else None, response.status_code if 'response' in locals() else 0
+    def log_result(self, test_name, success, message, details=None):
+        """Log test result"""
+        status = "✅ PASS" if success else "❌ FAIL"
+        result = {
+            "test": test_name,
+            "status": status,
+            "message": message,
+            "details": details or {}
+        }
+        self.test_results.append(result)
+        print(f"{status}: {test_name} - {message}")
+        if details:
+            print(f"   Details: {details}")
     
     def setup_test_data(self):
         """Setup comprehensive test data for CSV download testing"""
