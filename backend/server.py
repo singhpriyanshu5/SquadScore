@@ -1086,6 +1086,7 @@ async def export_group_data(group_id: str):
 
 @api_router.get("/groups/{group_id}/download-csv")
 @api_router.head("/groups/{group_id}/download-csv")
+@api_router.options("/groups/{group_id}/download-csv")
 async def download_group_csv(group_id: str):
     """Download group data as CSV file"""
     # Verify group exists
