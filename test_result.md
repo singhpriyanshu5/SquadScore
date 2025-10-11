@@ -204,7 +204,7 @@ frontend:
   
   - task: "Download Group History"
     implemented: true
-    working: true
+    working: false
     file: "server.py"
     stuck_count: 1
     priority: "high"
@@ -216,6 +216,9 @@ frontend:
         - working: true
           agent: "testing"
           comment: "✅ Backend CSV download endpoint working perfectly. Tested /api/groups/{group_id}/download-csv - returns proper CSV content with correct headers (text/csv, attachment filename), includes all required sections (GROUP INFORMATION, PLAYERS, TEAMS, GAME SESSIONS), proper error handling for invalid group IDs (404). Backend functionality is fully operational."
+        - working: false
+          agent: "testing"
+          comment: "❌ COMPREHENSIVE CSV DOWNLOAD TESTING REVEALED iPHONE COMPATIBILITY ISSUES - Backend testing: 61/61 tests passed (100% success rate) - CSV endpoint working perfectly with proper headers, content structure, and normalized scores. Mobile compatibility testing: 22/24 tests passed (91.7% success rate) - identified 2 critical issues: missing CORS headers for mobile web views, and HEAD method not supported. iPhone-specific analysis identified 6 issues including Safari download restrictions (HIGH PRIORITY), missing iOS-specific handling in frontend, file system access limitations, and sharing UTI requirements. ROOT CAUSE: Frontend implementation uses expo-file-system and expo-sharing correctly but lacks iOS-specific optimizations and CORS support. SOLUTIONS REQUIRED: 1) Add CORS middleware to backend, 2) Enhance frontend with iOS-specific download handling using proper UTI ('public.comma-separated-values-text'), 3) Implement fallback methods (WebBrowser, email sharing), 4) Add user instructions for iPhone download process. Backend is fully functional - issue is in mobile optimization layer."
 
   - task: "Upload Group History"
     implemented: true
