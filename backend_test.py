@@ -262,7 +262,11 @@ class iPhoneDownloadTester:
         
         try:
             # Test OPTIONS request (preflight)
-            headers = {'Origin': 'https://example.com', 'Access-Control-Request-Method': 'GET'}
+            headers = {
+                'Origin': 'https://example.com', 
+                'Access-Control-Request-Method': 'GET',
+                'Access-Control-Request-Headers': 'Content-Type'
+            }
             async with self.session.options(f"{API_BASE}/groups/{self.test_group_id}/download-csv", headers=headers) as response:
                 cors_origin = response.headers.get('access-control-allow-origin', '')
                 cors_methods = response.headers.get('access-control-allow-methods', '')
