@@ -219,39 +219,72 @@ export default function GroupDashboardScreen() {
           'Your board game history has been downloaded successfully.'
         );
       } else {
-        // For mobile platforms, fetch the data and use native sharing
+        // For mobile platforms - iOS optimized approach
+        console.log('Starting mobile download process...');
+        
         const response = await fetch(downloadUrl);
         if (!response.ok) {
-          throw new Error('Failed to fetch CSV data');
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
         }
         
         const csvData = await response.text();
+        console.log('CSV data fetched, length:', csvData.length);
+        
         const filename = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
         const fileUri = documentDirectory + filename;
         
-        // Write the CSV data to a file
+        console.log('Writing file to:', fileUri);
+        
+        // Write the CSV data to device storage
         await writeAsStringAsync(fileUri, csvData, {
           encoding: EncodingType.UTF8,
         });
         
-        // Check if sharing is available and share the file
+        console.log('File written successfully');
+        
+        // Always use sharing on mobile - this is the iOS-compatible approach
         const isAvailable = await Sharing.isAvailableAsync();
+        console.log('Sharing available:', isAvailable);
+        
         if (isAvailable) {
+          // Use iOS-specific sharing options
           await Sharing.shareAsync(fileUri, {
             mimeType: 'text/csv',
             dialogTitle: 'Save Board Game History',
             UTI: 'public.comma-separated-values-text'
           });
+          
+          // Show success message after sharing dialog
+          setTimeout(() => {
+            Alert.alert(
+              'Export Complete! 📊',
+              Platform.OS === 'ios' 
+                ? 'Use the share options to save to Files app, email, or other apps.' 
+                : 'Your board game history is ready to save or share.',
+              [{ text: 'OK' }]
+            );
+          }, 1000);
         } else {
+          // Fallback for devices without sharing capability
           Alert.alert(
-            'Download Complete!',
-            `Your board game history has been saved to: ${filename}\n\nYou can find it in your device's Documents folder.`
+            'Export Complete! 📊', 
+            `Your board game history has been saved as:\n${filename}\n\nThe file is ready in your app's documents.`,
+            [
+              { 
+                text: 'OK',
+                onPress: () => console.log('Download completed - no sharing available')
+              }
+            ]
           );
         }
       }
     } catch (error) {
-      console.error('Error downloading history:', error);
-      Alert.alert('Download Failed', 'Failed to download group history. Please try again.');
+      console.error('Download error details:', error);
+      Alert.alert(
+        'Export Failed', 
+        `Unable to export group history:\n${error.message}\n\nPlease check your internet connection and try again.`,
+        [{ text: 'OK' }]
+      );
     } finally {
       setExporting(false);
     }
