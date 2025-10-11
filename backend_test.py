@@ -84,489 +84,438 @@ class iPhoneDownloadTester:
         """Cleanup HTTP session"""
         if self.session:
             await self.session.close()
-        
-    def setup_test_data(self):
-        """Create comprehensive test data with multiple games and score ranges"""
-        print("\n=== SETTING UP TEST DATA ===")
-        
-        # 1. Create test group
-        group_data = {"group_name": "CSV Test Group"}
-        response = requests.post(f"{API_BASE}/groups", json=group_data)
-        if response.status_code != 200:
-            self.log_test("Create test group", False, f"Status: {response.status_code}")
-            return False
-            
-        self.group_id = response.json()["id"]
-        self.log_test("Create test group", True, f"Group ID: {self.group_id}")
-        
-        # 2. Create players with realistic names
-        players = [
-            {"player_name": "Emma Watson", "emoji": "🎭"},
-            {"player_name": "Michael Jordan", "emoji": "🏀"},
-            {"player_name": "Sarah Connor", "emoji": "🤖"},
-            {"player_name": "Tony Stark", "emoji": "⚡"}
-        ]
-        
-        for player in players:
-            player["group_id"] = self.group_id
-            response = requests.post(f"{API_BASE}/players", json=player)
-            if response.status_code == 200:
-                self.player_ids.append(response.json()["id"])
-                self.log_test(f"Create player {player['player_name']}", True)
-            else:
-                self.log_test(f"Create player {player['player_name']}", False, f"Status: {response.status_code}")
-                
-        # 3. Create teams
-        teams = [
-            {"team_name": "The Strategists", "player_ids": self.player_ids[:2]},
-            {"team_name": "The Champions", "player_ids": self.player_ids[2:]}
-        ]
-        
-        for team in teams:
-            team["group_id"] = self.group_id
-            response = requests.post(f"{API_BASE}/teams", json=team)
-            if response.status_code == 200:
-                self.team_ids.append(response.json()["id"])
-                self.log_test(f"Create team {team['team_name']}", True)
-            else:
-                self.log_test(f"Create team {team['team_name']}", False, f"Status: {response.status_code}")
-                
-        # 4. Create game sessions with different score ranges for normalization testing
-        game_sessions = [
-            {
-                "game_name": "High Score Game",
-                "game_date": "2024-01-15T19:00:00",
-                "player_scores": [
-                    {"player_id": self.player_ids[0], "player_name": "Emma Watson", "score": 850},
-                    {"player_id": self.player_ids[1], "player_name": "Michael Jordan", "score": 920},
-                    {"player_id": self.player_ids[2], "player_name": "Sarah Connor", "score": 780}
-                ]
-            },
-            {
-                "game_name": "Low Score Game", 
-                "game_date": "2024-01-16T20:00:00",
-                "player_scores": [
-                    {"player_id": self.player_ids[0], "player_name": "Emma Watson", "score": 3},
-                    {"player_id": self.player_ids[1], "player_name": "Michael Jordan", "score": 7},
-                    {"player_id": self.player_ids[3], "player_name": "Tony Stark", "score": 5}
-                ]
-            },
-            {
-                "game_name": "Team Game",
-                "game_date": "2024-01-17T18:00:00", 
-                "team_scores": [
-                    {"team_id": self.team_ids[0], "team_name": "The Strategists", "score": 45, "player_ids": self.player_ids[:2]},
-                    {"team_id": self.team_ids[1], "team_name": "The Champions", "score": 38, "player_ids": self.player_ids[2:]}
-                ]
-            },
-            {
-                "game_name": "Mixed Game",
-                "game_date": "2024-01-18T19:30:00",
-                "player_scores": [
-                    {"player_id": self.player_ids[2], "player_name": "Sarah Connor", "score": 150}
-                ],
-                "team_scores": [
-                    {"team_id": self.team_ids[0], "team_name": "The Strategists", "score": 200, "player_ids": self.player_ids[:2]}
-                ]
-            }
-        ]
-        
-        for session in game_sessions:
-            session["group_id"] = self.group_id
-            response = requests.post(f"{API_BASE}/game-sessions", json=session)
-            if response.status_code == 200:
-                self.session_ids.append(response.json()["id"])
-                self.log_test(f"Create game session {session['game_name']}", True)
-            else:
-                self.log_test(f"Create game session {session['game_name']}", False, f"Status: {response.status_code}")
-                
-        return len(self.player_ids) == 4 and len(self.team_ids) == 2 and len(self.session_ids) == 4
-        
-    def test_csv_download_endpoint(self):
-        """Test the CSV download endpoint functionality"""
-        print("\n=== TESTING CSV DOWNLOAD ENDPOINT ===")
-        
-        # Test CSV download
-        response = requests.get(f"{API_BASE}/groups/{self.group_id}/download-csv")
-        
-        # Check response status
-        if response.status_code != 200:
-            self.log_test("CSV download endpoint response", False, f"Status: {response.status_code}")
-            return False
-            
-        self.log_test("CSV download endpoint response", True, "Status: 200")
-        
-        # Check headers
-        content_type = response.headers.get('content-type', '')
-        content_disposition = response.headers.get('content-disposition', '')
-        
-        self.log_test("CSV content-type header", 'text/csv' in content_type, f"Content-Type: {content_type}")
-        self.log_test("CSV attachment header", 'attachment' in content_disposition, f"Content-Disposition: {content_disposition}")
-        
-        # Store CSV content for further testing
-        self.csv_content = response.text
-        return True
-        
-    def test_csv_structure(self):
-        """Test complete CSV structure with all required sections"""
-        print("\n=== TESTING CSV STRUCTURE ===")
-        
-        lines = self.csv_content.strip().split('\n')
-        
-        # Check for required sections
-        required_sections = ['GROUP INFORMATION', 'PLAYERS', 'TEAMS', 'GAME SESSIONS']
-        found_sections = []
-        
-        for line in lines:
-            if line.strip() in required_sections:
-                found_sections.append(line.strip())
-                
-        for section in required_sections:
-            found = section in found_sections
-            self.log_test(f"CSV contains {section} section", found)
-            
-        return len(found_sections) == len(required_sections)
-        
-    def test_players_section_normalized_scores(self):
-        """Test PLAYERS section contains both raw and normalized scores"""
-        print("\n=== TESTING PLAYERS SECTION WITH NORMALIZED SCORES ===")
-        
-        lines = self.csv_content.strip().split('\n')
-        
-        # Find PLAYERS section
-        players_start = -1
-        for i, line in enumerate(lines):
-            if line.strip() == 'PLAYERS':
-                players_start = i
-                break
-                
-        if players_start == -1:
-            self.log_test("Find PLAYERS section", False, "Section not found")
-            return False
-            
-        # Check header line
-        header_line = lines[players_start + 1]
-        expected_headers = [
-            'Player Name', 'Emoji', 'Raw Total Score', 'Games Played', 
-            'Raw Average Score', 'Normalized Total Score', 'Normalized Average Score', 'Joined Date'
-        ]
-        
-        header_correct = all(header in header_line for header in expected_headers)
-        self.log_test("PLAYERS section header contains all score types", header_correct, f"Header: {header_line}")
-        
-        # Parse player data
-        player_data_lines = []
-        for i in range(players_start + 2, len(lines)):
-            if lines[i].strip() == '' or lines[i].strip() in ['TEAMS', 'GAME SESSIONS']:
-                break
-            player_data_lines.append(lines[i])
-            
-        # Check each player has both raw and normalized scores
-        players_with_scores = 0
-        for line in player_data_lines:
-            reader = csv.reader([line])
-            row = next(reader)
-            if len(row) >= 7:  # Should have at least 7 columns including normalized scores
-                raw_total = float(row[2])
-                normalized_total = float(row[5])
-                normalized_avg = float(row[6])
-                
-                # Normalized scores should be in 0-1 range (or 0 for players with no games)
-                normalized_valid = (0 <= normalized_total <= 10) and (0 <= normalized_avg <= 1)  # Allow some flexibility for totals
-                players_with_scores += 1
-                
-                self.log_test(f"Player {row[0]} has valid normalized scores", normalized_valid, 
-                            f"Raw: {raw_total}, Norm Total: {normalized_total}, Norm Avg: {normalized_avg}")
-                            
-        self.log_test("All players have normalized score data", players_with_scores == 4)
-        return players_with_scores == 4
-        
-    def test_teams_section_normalized_scores(self):
-        """Test TEAMS section contains both raw and normalized scores"""
-        print("\n=== TESTING TEAMS SECTION WITH NORMALIZED SCORES ===")
-        
-        lines = self.csv_content.strip().split('\n')
-        
-        # Find TEAMS section
-        teams_start = -1
-        for i, line in enumerate(lines):
-            if line.strip() == 'TEAMS':
-                teams_start = i
-                break
-                
-        if teams_start == -1:
-            self.log_test("Find TEAMS section", False, "Section not found")
-            return False
-            
-        # Check header line
-        header_line = lines[teams_start + 1]
-        expected_headers = [
-            'Team Name', 'Players', 'Raw Total Score', 'Games Played',
-            'Raw Average Score', 'Normalized Total Score', 'Normalized Average Score', 'Created Date'
-        ]
-        
-        header_correct = all(header in header_line for header in expected_headers)
-        self.log_test("TEAMS section header contains all score types", header_correct, f"Header: {header_line}")
-        
-        # Parse team data
-        team_data_lines = []
-        for i in range(teams_start + 2, len(lines)):
-            if lines[i].strip() == '' or lines[i].strip() == 'GAME SESSIONS':
-                break
-            team_data_lines.append(lines[i])
-            
-        # Check each team has both raw and normalized scores
-        teams_with_scores = 0
-        for line in team_data_lines:
-            reader = csv.reader([line])
-            row = next(reader)
-            if len(row) >= 7:
-                raw_total = float(row[2])
-                normalized_total = float(row[5])
-                normalized_avg = float(row[6])
-                
-                # Normalized scores should be reasonable
-                normalized_valid = (0 <= normalized_total <= 10) and (0 <= normalized_avg <= 1)
-                teams_with_scores += 1
-                
-                self.log_test(f"Team {row[0]} has valid normalized scores", normalized_valid,
-                            f"Raw: {raw_total}, Norm Total: {normalized_total}, Norm Avg: {normalized_avg}")
-                            
-        self.log_test("All teams have normalized score data", teams_with_scores == 2)
-        return teams_with_scores == 2
-        
-    def test_game_sessions_section_enhanced(self):
-        """Test GAME SESSIONS section with enhanced normalized scores"""
-        print("\n=== TESTING ENHANCED GAME SESSIONS SECTION ===")
-        
-        lines = self.csv_content.strip().split('\n')
-        
-        # Find GAME SESSIONS section
-        sessions_start = -1
-        for i, line in enumerate(lines):
-            if line.strip() == 'GAME SESSIONS':
-                sessions_start = i
-                break
-                
-        if sessions_start == -1:
-            self.log_test("Find GAME SESSIONS section", False, "Section not found")
-            return False
-            
-        # Check header line matches expected format
-        header_line = lines[sessions_start + 1]
-        expected_header = 'Game Name,Date,Player/Team,Raw Score,Normalized Score,Type'
-        
-        header_correct = header_line.strip() == expected_header
-        self.log_test("GAME SESSIONS header format correct", header_correct, f"Expected: {expected_header}, Got: {header_line}")
-        
-        # Parse game session data
-        session_data_lines = []
-        for i in range(sessions_start + 2, len(lines)):
-            if lines[i].strip() == '':
-                break
-            session_data_lines.append(lines[i])
-            
-        # Check each game session entry has both raw and normalized scores
-        valid_entries = 0
-        individual_entries = 0
-        team_entries = 0
-        
-        for line in session_data_lines:
-            reader = csv.reader([line])
-            row = next(reader)
-            if len(row) >= 6:
-                game_name = row[0]
-                date = row[1]
-                participant = row[2]
-                raw_score = float(row[3])
-                normalized_score = float(row[4])
-                entry_type = row[5]
-                
-                # Normalized score should be in 0-1 range with 3 decimal precision
-                normalized_valid = (0 <= normalized_score <= 1)
-                precision_check = len(str(normalized_score).split('.')[-1]) <= 3
-                
-                if entry_type == 'Individual':
-                    individual_entries += 1
-                elif entry_type == 'Team':
-                    team_entries += 1
-                    
-                if normalized_valid and precision_check:
-                    valid_entries += 1
-                    
-                self.log_test(f"Game session entry {participant} in {game_name}", 
-                            normalized_valid and precision_check,
-                            f"Raw: {raw_score}, Normalized: {normalized_score}, Type: {entry_type}")
-                            
-        self.log_test("All game session entries have valid normalized scores", valid_entries == len(session_data_lines))
-        self.log_test("Game sessions contain individual player entries", individual_entries > 0)
-        self.log_test("Game sessions contain team entries", team_entries > 0)
-        
-        return valid_entries == len(session_data_lines) and individual_entries > 0 and team_entries > 0
-        
-    def test_normalization_consistency(self):
-        """Test that normalization is consistent across different games"""
-        print("\n=== TESTING NORMALIZATION CONSISTENCY ===")
-        
-        lines = self.csv_content.strip().split('\n')
-        
-        # Find GAME SESSIONS section and parse data
-        sessions_start = -1
-        for i, line in enumerate(lines):
-            if line.strip() == 'GAME SESSIONS':
-                sessions_start = i
-                break
-                
-        if sessions_start == -1:
-            return False
-            
-        # Group entries by game
-        game_entries = {}
-        for i in range(sessions_start + 2, len(lines)):
-            if lines[i].strip() == '':
-                break
-            reader = csv.reader([lines[i]])
-            row = next(reader)
-            if len(row) >= 6:
-                game_name = row[0]
-                raw_score = float(row[3])
-                normalized_score = float(row[4])
-                
-                if game_name not in game_entries:
-                    game_entries[game_name] = []
-                game_entries[game_name].append((raw_score, normalized_score))
-                
-        # Test normalization per game
-        consistent_games = 0
-        for game_name, entries in game_entries.items():
-            raw_scores = [entry[0] for entry in entries]
-            normalized_scores = [entry[1] for entry in entries]
-            
-            if len(raw_scores) > 1:
-                # Check that highest raw score gets highest normalized score
-                max_raw_idx = raw_scores.index(max(raw_scores))
-                min_raw_idx = raw_scores.index(min(raw_scores))
-                
-                max_norm = normalized_scores[max_raw_idx]
-                min_norm = normalized_scores[min_raw_idx]
-                
-                # For proper normalization, max should be close to 1.0, min close to 0.0
-                normalization_correct = max_norm >= min_norm
-                consistent_games += 1 if normalization_correct else 0
-                
-                self.log_test(f"Game {game_name} normalization consistency", normalization_correct,
-                            f"Max raw: {max(raw_scores)} -> {max_norm}, Min raw: {min(raw_scores)} -> {min_norm}")
-            else:
-                # Single score should default to 0.5
-                single_norm = normalized_scores[0]
-                single_correct = single_norm == 0.5
-                consistent_games += 1 if single_correct else 0
-                
-                self.log_test(f"Game {game_name} single score normalization", single_correct,
-                            f"Single score: {raw_scores[0]} -> {single_norm} (should be 0.5)")
-                            
-        total_games = len(game_entries)
-        self.log_test("All games have consistent normalization", consistent_games == total_games,
-                     f"{consistent_games}/{total_games} games consistent")
-                     
-        return consistent_games == total_games
-        
-    def test_complete_data_transparency(self):
-        """Test that CSV provides complete transparency for analysis"""
-        print("\n=== TESTING COMPLETE DATA TRANSPARENCY ===")
-        
-        # Check that we can parse the entire CSV successfully
+    
+    async def create_test_group(self):
+        """Create a test group with sample data"""
         try:
-            reader = csv.reader(StringIO(self.csv_content))
-            total_lines = sum(1 for row in reader)
-            self.log_test("CSV is fully parseable", True, f"Total lines: {total_lines}")
+            # Create group
+            group_data = {"group_name": "iPhone Download Test Group"}
+            async with self.session.post(f"{API_BASE}/groups", json=group_data) as response:
+                if response.status == 200:
+                    group = await response.json()
+                    self.test_group_id = group['id']
+                    self.results.add_test("Create Test Group", True, f"Group ID: {self.test_group_id}")
+                    return True
+                else:
+                    self.results.add_test("Create Test Group", False, f"Status: {response.status}")
+                    return False
         except Exception as e:
-            self.log_test("CSV is fully parseable", False, f"Parse error: {str(e)}")
+            self.results.add_test("Create Test Group", False, f"Exception: {str(e)}")
             return False
+    
+    async def create_sample_data(self):
+        """Create sample players, teams, and game sessions"""
+        if not self.test_group_id:
+            return False
+        
+        try:
+            # Create players
+            players = [
+                {"player_name": "Emma Wilson", "group_id": self.test_group_id, "emoji": "🎯"},
+                {"player_name": "Liam Johnson", "group_id": self.test_group_id, "emoji": "🎲"},
+                {"player_name": "Sophia Davis", "group_id": self.test_group_id, "emoji": "🏆"},
+                {"player_name": "Noah Brown", "group_id": self.test_group_id, "emoji": "🎮"}
+            ]
             
-        # Check that both raw and normalized data is present throughout
-        raw_score_count = self.csv_content.count('Raw Score') + self.csv_content.count('Raw Total Score')
-        normalized_score_count = self.csv_content.count('Normalized Score') + self.csv_content.count('Normalized Total Score')
-        
-        self.log_test("CSV contains raw score references", raw_score_count >= 3, f"Raw score references: {raw_score_count}")
-        self.log_test("CSV contains normalized score references", normalized_score_count >= 3, f"Normalized score references: {normalized_score_count}")
-        
-        # Check that we have data for analysis in Excel/Google Sheets
-        has_player_summary = 'PLAYERS' in self.csv_content
-        has_team_summary = 'TEAMS' in self.csv_content  
-        has_detailed_sessions = 'GAME SESSIONS' in self.csv_content
-        
-        self.log_test("CSV has player summary data", has_player_summary)
-        self.log_test("CSV has team summary data", has_team_summary)
-        self.log_test("CSV has detailed session data", has_detailed_sessions)
-        
-        return raw_score_count >= 3 and normalized_score_count >= 3 and has_player_summary and has_team_summary and has_detailed_sessions
-        
-    def cleanup_test_data(self):
-        """Clean up test data"""
-        print("\n=== CLEANING UP TEST DATA ===")
-        
-        # Delete game sessions
-        for session_id in self.session_ids:
-            response = requests.delete(f"{API_BASE}/game-sessions/{session_id}")
-            self.log_test(f"Delete game session {session_id}", response.status_code == 200)
+            for player_data in players:
+                async with self.session.post(f"{API_BASE}/players", json=player_data) as response:
+                    if response.status == 200:
+                        player = await response.json()
+                        self.test_data['players'].append(player)
             
-        # Delete players (this will also clean up teams)
-        for player_id in self.player_ids:
-            response = requests.delete(f"{API_BASE}/players/{player_id}")
-            self.log_test(f"Delete player {player_id}", response.status_code == 200)
+            self.results.add_test("Create Sample Players", len(self.test_data['players']) == 4, 
+                                f"Created {len(self.test_data['players'])}/4 players")
             
-    def run_all_tests(self):
-        """Run all CSV download tests"""
-        print("🧪 ENHANCED CSV DOWNLOAD WITH NORMALIZED SCORES - COMPREHENSIVE TESTING")
+            # Create teams
+            if len(self.test_data['players']) >= 4:
+                teams = [
+                    {
+                        "team_name": "Strategy Masters",
+                        "group_id": self.test_group_id,
+                        "player_ids": [self.test_data['players'][0]['id'], self.test_data['players'][1]['id']]
+                    },
+                    {
+                        "team_name": "Game Champions",
+                        "group_id": self.test_group_id,
+                        "player_ids": [self.test_data['players'][2]['id'], self.test_data['players'][3]['id']]
+                    }
+                ]
+                
+                for team_data in teams:
+                    async with self.session.post(f"{API_BASE}/teams", json=team_data) as response:
+                        if response.status == 200:
+                            team = await response.json()
+                            self.test_data['teams'].append(team)
+                
+                self.results.add_test("Create Sample Teams", len(self.test_data['teams']) == 2,
+                                    f"Created {len(self.test_data['teams'])}/2 teams")
+            
+            # Create game sessions
+            if len(self.test_data['players']) >= 4 and len(self.test_data['teams']) >= 2:
+                sessions = [
+                    {
+                        "group_id": self.test_group_id,
+                        "game_name": "Settlers of Catan",
+                        "game_date": "2024-01-15T19:30:00",
+                        "player_scores": [
+                            {"player_id": self.test_data['players'][0]['id'], "player_name": "Emma Wilson", "score": 12},
+                            {"player_id": self.test_data['players'][1]['id'], "player_name": "Liam Johnson", "score": 8},
+                            {"player_id": self.test_data['players'][2]['id'], "player_name": "Sophia Davis", "score": 10},
+                            {"player_id": self.test_data['players'][3]['id'], "player_name": "Noah Brown", "score": 6}
+                        ]
+                    },
+                    {
+                        "group_id": self.test_group_id,
+                        "game_name": "Dungeons & Dragons",
+                        "game_date": "2024-01-20T20:00:00",
+                        "team_scores": [
+                            {
+                                "team_id": self.test_data['teams'][0]['id'],
+                                "team_name": "Strategy Masters",
+                                "score": 850,
+                                "player_ids": [self.test_data['players'][0]['id'], self.test_data['players'][1]['id']]
+                            },
+                            {
+                                "team_id": self.test_data['teams'][1]['id'],
+                                "team_name": "Game Champions", 
+                                "score": 720,
+                                "player_ids": [self.test_data['players'][2]['id'], self.test_data['players'][3]['id']]
+                            }
+                        ]
+                    }
+                ]
+                
+                for session_data in sessions:
+                    async with self.session.post(f"{API_BASE}/game-sessions", json=session_data) as response:
+                        if response.status == 200:
+                            session = await response.json()
+                            self.test_data['sessions'].append(session)
+                
+                self.results.add_test("Create Sample Game Sessions", len(self.test_data['sessions']) == 2,
+                                    f"Created {len(self.test_data['sessions'])}/2 game sessions")
+            
+            return len(self.test_data['players']) >= 4 and len(self.test_data['teams']) >= 2 and len(self.test_data['sessions']) >= 2
+            
+        except Exception as e:
+            self.results.add_test("Create Sample Data", False, f"Exception: {str(e)}")
+            return False
+    
+    async def test_csv_endpoint_basic(self):
+        """Test basic CSV download endpoint functionality"""
+        if not self.test_group_id:
+            return False
+        
+        try:
+            async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/download-csv") as response:
+                # Test response status
+                self.results.add_test("CSV Endpoint Status", response.status == 200,
+                                    f"Status: {response.status}")
+                
+                # Test Content-Type header
+                content_type = response.headers.get('Content-Type', '')
+                self.results.add_test("CSV Content-Type Header", 'text/csv' in content_type,
+                                    f"Content-Type: {content_type}")
+                
+                # Test Content-Disposition header
+                content_disposition = response.headers.get('Content-Disposition', '')
+                has_attachment = 'attachment' in content_disposition
+                has_filename = 'filename=' in content_disposition
+                self.results.add_test("CSV Content-Disposition Header", has_attachment and has_filename,
+                                    f"Content-Disposition: {content_disposition}")
+                
+                # Test CSV content
+                if response.status == 200:
+                    csv_content = await response.text()
+                    
+                    # Verify CSV structure
+                    has_group_info = 'GROUP INFORMATION' in csv_content
+                    has_players = 'PLAYERS' in csv_content
+                    has_teams = 'TEAMS' in csv_content
+                    has_sessions = 'GAME SESSIONS' in csv_content
+                    
+                    self.results.add_test("CSV Structure - Group Info", has_group_info,
+                                        f"Contains GROUP INFORMATION section")
+                    self.results.add_test("CSV Structure - Players", has_players,
+                                        f"Contains PLAYERS section")
+                    self.results.add_test("CSV Structure - Teams", has_teams,
+                                        f"Contains TEAMS section")
+                    self.results.add_test("CSV Structure - Game Sessions", has_sessions,
+                                        f"Contains GAME SESSIONS section")
+                    
+                    # Test normalized scores in CSV
+                    has_normalized_scores = 'Normalized Score' in csv_content
+                    self.results.add_test("CSV Normalized Scores", has_normalized_scores,
+                                        f"Contains normalized scores in game sessions")
+                    
+                    return True
+                else:
+                    return False
+                    
+        except Exception as e:
+            self.results.add_test("CSV Endpoint Basic Test", False, f"Exception: {str(e)}")
+            return False
+    
+    async def test_cors_headers(self):
+        """Test CORS headers for mobile compatibility"""
+        if not self.test_group_id:
+            return False
+        
+        try:
+            # Test OPTIONS request (preflight)
+            async with self.session.options(f"{API_BASE}/groups/{self.test_group_id}/download-csv") as response:
+                cors_origin = response.headers.get('Access-Control-Allow-Origin', '')
+                cors_methods = response.headers.get('Access-Control-Allow-Methods', '')
+                cors_headers = response.headers.get('Access-Control-Allow-Headers', '')
+                
+                self.results.add_test("CORS - Allow Origin", cors_origin != '',
+                                    f"Access-Control-Allow-Origin: {cors_origin}")
+                self.results.add_test("CORS - Allow Methods", 'GET' in cors_methods,
+                                    f"Access-Control-Allow-Methods: {cors_methods}")
+                self.results.add_test("CORS - Allow Headers", cors_headers != '',
+                                    f"Access-Control-Allow-Headers: {cors_headers}")
+            
+            # Test actual GET request with CORS headers
+            async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/download-csv") as response:
+                cors_origin = response.headers.get('Access-Control-Allow-Origin', '')
+                self.results.add_test("CORS - GET Response Origin", cors_origin != '',
+                                    f"GET Access-Control-Allow-Origin: {cors_origin}")
+                
+                return True
+                
+        except Exception as e:
+            self.results.add_test("CORS Headers Test", False, f"Exception: {str(e)}")
+            return False
+    
+    async def test_head_method_support(self):
+        """Test HEAD method support for mobile compatibility"""
+        if not self.test_group_id:
+            return False
+        
+        try:
+            async with self.session.head(f"{API_BASE}/groups/{self.test_group_id}/download-csv") as response:
+                self.results.add_test("HEAD Method Support", response.status == 200,
+                                    f"HEAD Status: {response.status}")
+                
+                # Verify headers are present in HEAD response
+                content_type = response.headers.get('Content-Type', '')
+                content_disposition = response.headers.get('Content-Disposition', '')
+                
+                self.results.add_test("HEAD Method - Content-Type", 'text/csv' in content_type,
+                                    f"HEAD Content-Type: {content_type}")
+                self.results.add_test("HEAD Method - Content-Disposition", 'attachment' in content_disposition,
+                                    f"HEAD Content-Disposition: {content_disposition}")
+                
+                return True
+                
+        except Exception as e:
+            self.results.add_test("HEAD Method Support", False, f"Exception: {str(e)}")
+            return False
+    
+    async def test_mobile_user_agent_compatibility(self):
+        """Test compatibility with various mobile user agents"""
+        if not self.test_group_id:
+            return False
+        
+        mobile_user_agents = [
+            # iPhone Safari
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            # iPhone Chrome
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/119.0.6045.109 Mobile/15E148 Safari/604.1',
+            # React Native WebView
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
+        ]
+        
+        success_count = 0
+        for i, user_agent in enumerate(mobile_user_agents):
+            try:
+                headers = {'User-Agent': user_agent}
+                async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/download-csv", 
+                                          headers=headers) as response:
+                    if response.status == 200:
+                        success_count += 1
+                        self.results.add_test(f"Mobile User Agent {i+1}", True,
+                                            f"Status: {response.status}")
+                    else:
+                        self.results.add_test(f"Mobile User Agent {i+1}", False,
+                                            f"Status: {response.status}")
+            except Exception as e:
+                self.results.add_test(f"Mobile User Agent {i+1}", False, f"Exception: {str(e)}")
+        
+        return success_count == len(mobile_user_agents)
+    
+    async def test_csv_content_validation(self):
+        """Test CSV content structure and data integrity"""
+        if not self.test_group_id:
+            return False
+        
+        try:
+            async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/download-csv") as response:
+                if response.status != 200:
+                    self.results.add_test("CSV Content Validation", False, f"Status: {response.status}")
+                    return False
+                
+                csv_content = await response.text()
+                lines = csv_content.split('\n')
+                
+                # Test specific content requirements
+                group_name_found = any('iPhone Download Test Group' in line for line in lines)
+                self.results.add_test("CSV Content - Group Name", group_name_found,
+                                    "Group name present in CSV")
+                
+                # Test player data
+                emma_found = any('Emma Wilson' in line for line in lines)
+                liam_found = any('Liam Johnson' in line for line in lines)
+                self.results.add_test("CSV Content - Player Data", emma_found and liam_found,
+                                    "Player names present in CSV")
+                
+                # Test team data
+                strategy_masters_found = any('Strategy Masters' in line for line in lines)
+                game_champions_found = any('Game Champions' in line for line in lines)
+                self.results.add_test("CSV Content - Team Data", strategy_masters_found and game_champions_found,
+                                    "Team names present in CSV")
+                
+                # Test game session data
+                catan_found = any('Settlers of Catan' in line for line in lines)
+                dnd_found = any('Dungeons & Dragons' in line for line in lines)
+                self.results.add_test("CSV Content - Game Sessions", catan_found and dnd_found,
+                                    "Game sessions present in CSV")
+                
+                # Test normalized scores format
+                normalized_score_pattern = False
+                for line in lines:
+                    if 'Normalized Score' in line or ('0.' in line and 'Individual' in line):
+                        normalized_score_pattern = True
+                        break
+                
+                self.results.add_test("CSV Content - Normalized Score Format", normalized_score_pattern,
+                                    "Normalized scores in proper format (0-1 range)")
+                
+                # Test raw and normalized score headers
+                raw_total_score = any('Raw Total Score' in line for line in lines)
+                normalized_total_score = any('Normalized Total Score' in line for line in lines)
+                self.results.add_test("CSV Content - Score Headers", raw_total_score and normalized_total_score,
+                                    "Both raw and normalized score headers present")
+                
+                return True
+                
+        except Exception as e:
+            self.results.add_test("CSV Content Validation", False, f"Exception: {str(e)}")
+            return False
+    
+    async def test_ios_specific_headers(self):
+        """Test iOS-specific headers and MIME types"""
+        if not self.test_group_id:
+            return False
+        
+        try:
+            async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/download-csv") as response:
+                content_type = response.headers.get('Content-Type', '')
+                
+                # Test for proper CSV MIME type
+                proper_csv_mime = 'text/csv' in content_type
+                self.results.add_test("iOS - CSV MIME Type", proper_csv_mime,
+                                    f"Content-Type: {content_type}")
+                
+                # Test for charset specification
+                has_charset = 'charset=' in content_type
+                self.results.add_test("iOS - Charset Specification", has_charset,
+                                    f"Charset in Content-Type: {has_charset}")
+                
+                # Test Content-Disposition for iOS compatibility
+                content_disposition = response.headers.get('Content-Disposition', '')
+                has_proper_filename = 'filename=' in content_disposition and '.csv' in content_disposition
+                self.results.add_test("iOS - Proper Filename Extension", has_proper_filename,
+                                    f"Filename with .csv extension: {has_proper_filename}")
+                
+                return proper_csv_mime and has_charset and has_proper_filename
+                
+        except Exception as e:
+            self.results.add_test("iOS Specific Headers", False, f"Exception: {str(e)}")
+            return False
+    
+    async def test_error_scenarios(self):
+        """Test error handling scenarios"""
+        try:
+            # Test invalid group ID
+            invalid_group_id = str(uuid.uuid4())
+            async with self.session.get(f"{API_BASE}/groups/{invalid_group_id}/download-csv") as response:
+                self.results.add_test("Error Handling - Invalid Group", response.status == 404,
+                                    f"Invalid group status: {response.status}")
+            
+            # Test malformed group ID
+            async with self.session.get(f"{API_BASE}/groups/invalid-id/download-csv") as response:
+                error_handled = response.status in [400, 404, 422]
+                self.results.add_test("Error Handling - Malformed ID", error_handled,
+                                    f"Malformed ID status: {response.status}")
+            
+            return True
+            
+        except Exception as e:
+            self.results.add_test("Error Scenarios", False, f"Exception: {str(e)}")
+            return False
+    
+    async def run_comprehensive_test(self):
+        """Run all iPhone download functionality tests"""
+        print("🧪 Starting Comprehensive iPhone Download Functionality Testing")
         print("=" * 80)
         
-        # Setup
-        if not self.setup_test_data():
-            print("❌ CRITICAL: Test data setup failed. Cannot proceed with testing.")
-            return False
-            
+        await self.setup_session()
+        
         try:
-            # Core functionality tests
-            if not self.test_csv_download_endpoint():
-                print("❌ CRITICAL: CSV download endpoint failed. Cannot proceed with content testing.")
-                return False
-                
-            # Structure and content tests
-            self.test_csv_structure()
-            self.test_players_section_normalized_scores()
-            self.test_teams_section_normalized_scores()
-            self.test_game_sessions_section_enhanced()
-            self.test_normalization_consistency()
-            self.test_complete_data_transparency()
+            # Setup test data
+            if not await self.create_test_group():
+                print("❌ Failed to create test group. Aborting tests.")
+                return
+            
+            if not await self.create_sample_data():
+                print("❌ Failed to create sample data. Some tests may fail.")
+            
+            # Run all test suites
+            print("\n📋 Testing CSV Endpoint Basic Functionality...")
+            await self.test_csv_endpoint_basic()
+            
+            print("\n🌐 Testing CORS Headers for Mobile Compatibility...")
+            await self.test_cors_headers()
+            
+            print("\n📱 Testing HEAD Method Support...")
+            await self.test_head_method_support()
+            
+            print("\n📲 Testing Mobile User Agent Compatibility...")
+            await self.test_mobile_user_agent_compatibility()
+            
+            print("\n📄 Testing CSV Content Validation...")
+            await self.test_csv_content_validation()
+            
+            print("\n🍎 Testing iOS-Specific Headers...")
+            await self.test_ios_specific_headers()
+            
+            print("\n🚨 Testing Error Scenarios...")
+            await self.test_error_scenarios()
             
         finally:
-            # Always cleanup
-            self.cleanup_test_data()
-            
-        # Summary
-        print("\n" + "=" * 80)
-        print("📊 TEST SUMMARY")
-        print("=" * 80)
+            await self.cleanup_session()
         
-        passed_tests = sum(1 for result in self.test_results if result["passed"])
-        total_tests = len(self.test_results)
-        success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
+        # Print final results
+        self.results.print_summary()
         
-        print(f"✅ Passed: {passed_tests}")
-        print(f"❌ Failed: {total_tests - passed_tests}")
-        print(f"📈 Success Rate: {success_rate:.1f}%")
-        
-        if success_rate >= 90:
-            print("🎉 ENHANCED CSV DOWNLOAD FUNCTIONALITY: EXCELLENT")
-        elif success_rate >= 75:
-            print("✅ ENHANCED CSV DOWNLOAD FUNCTIONALITY: GOOD")
-        else:
-            print("⚠️  ENHANCED CSV DOWNLOAD FUNCTIONALITY: NEEDS ATTENTION")
-            
-        return success_rate >= 90
+        return self.results
+
+async def main():
+    """Main test execution function"""
+    tester = iPhoneDownloadTester()
+    results = await tester.run_comprehensive_test()
+    
+    # Return results for analysis
+    return results
 
 if __name__ == "__main__":
-    tester = CSVDownloadTester()
-    success = tester.run_all_tests()
-    sys.exit(0 if success else 1)
+    # Run the comprehensive test suite
+    results = asyncio.run(main())
+    
+    # Exit with appropriate code
+    if results.failed_tests == 0:
+        print(f"\n🎉 ALL TESTS PASSED! iPhone download functionality is working correctly.")
+        sys.exit(0)
+    else:
+        print(f"\n⚠️  {results.failed_tests} test(s) failed. iPhone download functionality needs attention.")
+        sys.exit(1)
