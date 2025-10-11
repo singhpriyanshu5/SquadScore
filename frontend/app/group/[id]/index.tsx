@@ -192,11 +192,30 @@ export default function GroupDashboardScreen() {
       const downloadUrl = `${EXPO_PUBLIC_BACKEND_URL}/api/groups/${id}/download-csv`;
       
       if (Platform.OS === 'web') {
-        // For web platform, use direct download
-        window.open(downloadUrl, '_blank');
+        // For web platform, fetch and trigger download
+        const response = await fetch(downloadUrl);
+        if (!response.ok) {
+          throw new Error('Failed to fetch CSV data');
+        }
+        
+        const csvData = await response.text();
+        const filename = `${group.group_name.replace(/[^a-zA-Z0-9]/g, '_')}_history_${new Date().toISOString().split('T')[0]}.csv`;
+        
+        // Create download link and trigger download
+        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
         Alert.alert(
-          'Download Started!',
-          'Your board game history download has started. The CSV file should appear in your Downloads folder.'
+          'Download Complete!',
+          'Your board game history has been downloaded successfully.'
         );
       } else {
         // For mobile platforms, use WebBrowser to open the download URL
