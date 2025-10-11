@@ -21,13 +21,43 @@ API_BASE = f"{BACKEND_URL}/api"
 print(f"🎯 Testing backend at: {API_BASE}")
 print("Focus: iPhone Download Functionality - Enhanced Frontend Download Function and Backend CSV Response")
 
-class CSVDownloadTester:
+class TestResults:
     def __init__(self):
-        self.group_id = None
-        self.player_ids = []
-        self.team_ids = []
-        self.session_ids = []
-        self.test_results = []
+        self.total_tests = 0
+        self.passed_tests = 0
+        self.failed_tests = 0
+        self.test_details = []
+    
+    def add_test(self, test_name, passed, details=""):
+        self.total_tests += 1
+        if passed:
+            self.passed_tests += 1
+            status = "✅ PASS"
+        else:
+            self.failed_tests += 1
+            status = "❌ FAIL"
+        
+        self.test_details.append(f"{status}: {test_name} - {details}")
+        print(f"{status}: {test_name} - {details}")
+    
+    def print_summary(self):
+        success_rate = (self.passed_tests / self.total_tests * 100) if self.total_tests > 0 else 0
+        print(f"\n{'='*80}")
+        print(f"TEST SUMMARY: {self.passed_tests}/{self.total_tests} tests passed ({success_rate:.1f}% success rate)")
+        print(f"{'='*80}")
+        for detail in self.test_details:
+            print(detail)
+
+class iPhoneDownloadTester:
+    def __init__(self):
+        self.results = TestResults()
+        self.session = None
+        self.test_group_id = None
+        self.test_data = {
+            'players': [],
+            'teams': [],
+            'sessions': []
+        }
         
     def log_test(self, test_name, passed, details=""):
         """Log test result"""
