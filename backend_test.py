@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 """
-Backend Testing Script for Enhanced CSV Download with Game-Level Normalized Scores
-Focus: Testing /api/groups/{group_id}/download-csv endpoint with normalized scoring
+Comprehensive Backend Testing for iPhone Download Functionality
+Testing Focus: Enhanced Frontend Download Function and Backend CSV Response
 """
 
-import requests
+import asyncio
+import aiohttp
 import json
 import csv
 from io import StringIO
-from datetime import datetime
-import sys
 import os
+from datetime import datetime
+import uuid
+import sys
 
 # Get backend URL from environment
-BACKEND_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://scoreleader.preview.emergentagent.com')
+BACKEND_URL = os.getenv('EXPO_PUBLIC_BACKEND_URL', 'https://scoreleader.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 print(f"🎯 Testing backend at: {API_BASE}")
-print("Focus: Enhanced CSV Download with Game-Level Normalized Scores")
+print("Focus: iPhone Download Functionality - Enhanced Frontend Download Function and Backend CSV Response")
 
 class CSVDownloadTester:
     def __init__(self):
