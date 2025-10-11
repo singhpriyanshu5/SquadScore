@@ -276,7 +276,8 @@ class iPhoneDownloadTester:
                                     f"Access-Control-Allow-Headers: {cors_headers}")
             
             # Test actual GET request with CORS headers
-            async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/download-csv") as response:
+            headers = {'Origin': 'https://example.com'}
+            async with self.session.get(f"{API_BASE}/groups/{self.test_group_id}/download-csv", headers=headers) as response:
                 cors_origin = response.headers.get('access-control-allow-origin', '')
                 self.results.add_test("CORS - GET Response Origin", cors_origin != '',
                                     f"GET Access-Control-Allow-Origin: {cors_origin}")
